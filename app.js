@@ -53,6 +53,7 @@ let collectionCache = [];
 let openSeriesId    = null;         // série affichée en vue détail
 let volumeFilter    = "all";        // "all" | "owned" | "missing"
 let suggestionsLoaded = false;
+let ouvrirApresAjout  = null;      // série à ouvrir dès qu'elle arrive de Firestore
 
 /* ══════════════════ Authentification ══════════════════ */
 
@@ -76,6 +77,7 @@ onAuthStateChanged(auth, async (user) => {
 
   watchCollection(user.uid);
   loadSuggestions();
+  loadEditions();
 
   // Le pseudo enregistré dans Firestore fait foi si displayName n'a pas été posé.
   try {
@@ -276,6 +278,24 @@ function showView(name) {
 
 const ANILIST = "https://graphql.anilist.co";
 
+/* Les bases internationales référencent la tomaison d'origine, qui ne
+   correspond pas toujours à l'édition française. Ces corrections priment. */
+const TOMES_VF = {
+  "solo leveling": 19
+};
+
+/* Coffrets et rééditions françaises absents des bases. La couverture est
+   récupérée à l'affichage via `source`, pour ne pas figer une URL d'image. */
+const EDITIONS_VF = [
+  {
+    id: "vf-death-note-black-edition",
+    title: "Death Note — Black Edition",
+    volumes: 6,
+    source: "Death Note",
+    note: "Réédition en 6 tomes doubles"
+  }
+];
+
 const CHAMPS = `
   id
   title { romaji english }
@@ -300,32 +320,40 @@ async function anilist(query, variables = {}) {
 
 /* Les deux sources sont ramenées à une même forme, pour que le reste du code
    ignore d'où viennent les données. */
-const depuisAniList = (m) => ({
+// Le titre anglais colle bien mieux aux éditions françaises que le romaji :
+// « Solo Leveling » plutôt que « Na Honjaman Level Up ».
+const depuisAniList = (m) => corrigerVF({
   id:      `al-${m.id}`,
-  title:   m.title?.romaji || m.title?.english || "Sans titre",
+  title:   m.title?.english || m.title?.romaji || "Sans titre",
   cover:   m.coverImage?.large || "",
   volumes: m.volumes || 0,
   year:    m.startDate?.year || null
 });
 
-const depuisJikan = (m) => ({
+const depuisJikan = (m) => corrigerVF({
   id:      `mal-${m.mal_id}`,
-  title:   m.title || m.title_english || "Sans titre",
+  title:   m.title_english || m.title || "Sans titre",
   cover:   m.images?.jpg?.large_image_url || m.images?.jpg?.image_url || "",
   volumes: m.volumes || 0,
   year:    m.published?.prop?.from?.year || null
 });
 
+function corrigerVF(serie) {
+  const vf = TOMES_VF[serie.title.toLowerCase()];
+  if (vf) serie.volumes = vf;
+  return serie;
+}
+
 async function seriesPopulaires() {
   try {
     const d = await anilist(
-      `query { Page(perPage: 20) { media(
+      `query { Page(perPage: 40) { media(
          type: MANGA, format: MANGA, sort: POPULARITY_DESC, isAdult: false
        ) { ${CHAMPS} } } }`);
     return d.Page.media.map(depuisAniList);
   } catch (err) {
     console.warn("AniList indisponible, repli sur Jikan :", err.message);
-    const { data } = await jikan("/top/manga?limit=20");
+    const { data } = await jikan("/top/manga?limit=25");
     return data.map(depuisJikan);
   }
 }
@@ -381,7 +409,7 @@ function suggestionCard(serie) {
       <img src="${serie.cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
     </span>
     <span class="poster-name">${escapeHtml(serie.title)}</span>
-    <span class="poster-meta">${serie.volumes ? `${serie.volumes} tomes` : "Série en cours"}</span>`;
+    <span class="poster-meta">${serie.note || (serie.volumes ? `${serie.volumes} tomes` : "Série en cours")}</span>`;
 
   const meta = card.querySelector(".poster-meta");
   const marquerSuivie = () => {
@@ -486,12 +514,75 @@ async function addSeries(serie) {
   await setDoc(doc(db, "users", currentUser.uid, "series", serie.id), {
     id: serie.id,
     title: serie.title,
-    cover: serie.cover,
+    cover: serie.cover || "",
     totalVolumes: total,
     owned: [],
     addedAt: Date.now()
   });
+
+  // La page de la série s'ouvrira dès que Firestore aura confirmé l'écriture.
+  ouvrirApresAjout = serie.id;
 }
+
+/* ══════════════════ Éditions françaises ══════════════════ */
+
+async function loadEditions() {
+  const grid = $("editions");
+  grid.innerHTML = "";
+
+  for (const edition of EDITIONS_VF) {
+    // La couverture vient de la série d'origine, cherchée à l'affichage.
+    let cover = "";
+    try {
+      const trouvees = await chercherSeries(edition.source);
+      cover = trouvees[0]?.cover || "";
+    } catch { /* la carte reste utilisable sans image */ }
+
+    grid.appendChild(suggestionCard({
+      id: edition.id,
+      title: edition.title,
+      cover,
+      volumes: edition.volumes,
+      year: null,
+      note: edition.note
+    }));
+  }
+}
+
+/* ══════════════════ Ajout manuel ══════════════════ */
+
+$("manual-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const title = $("manual-title").value.trim();
+  const total = Number($("manual-volumes").value);
+  const cover = $("manual-cover").value.trim();
+
+  if (!title) return toast("Donne un titre à cette édition.");
+  if (!Number.isInteger(total) || total < 1 || total > 500) {
+    return toast("Indique un nombre de tomes entre 1 et 500.");
+  }
+
+  // Identifiant lisible et stable, dérivé du titre.
+  const id = "vf-" + title.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 50);
+
+  if (collectionCache.some((s) => s.id === id)) {
+    return toast("Cette édition est déjà dans ta mangathèque.");
+  }
+
+  try {
+    await addSeries({ id, title, cover, volumes: total });
+    $("manual-form").reset();
+    document.querySelector(".manual").open = false;
+    toast(`${title} est dans ta mangathèque.`);
+  } catch {
+    toast("L'ajout a échoué.");
+  }
+});
 
 /* ══════════════════ Lecture temps réel ══════════════════ */
 
@@ -504,6 +595,13 @@ function watchCollection(uid) {
     collectionCache = snap.docs.map((d) => d.data());
     renderCollection();
     if (openSeriesId) renderDetail();
+
+    // L'ajout est confirmé par Firestore, pas par le clic : on attend que la
+    // série soit bien là avant d'ouvrir sa page.
+    if (ouvrirApresAjout && collectionCache.some((s) => s.id === ouvrirApresAjout)) {
+      openSeries(ouvrirApresAjout);
+      ouvrirApresAjout = null;
+    }
   }, (err) => {
     console.error("Firestore :", err.code, err.message);
     $("loading").textContent = "Impossible de lire ta collection. Vérifie les règles Firestore.";

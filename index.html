@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rayon — ma collection de manga</title>
+  <title>MaMangathèque</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -71,7 +71,7 @@
   <!-- ══ Application ══ -->
   <div id="app-screen" hidden>
     <header class="topbar">
-      <h1 class="wordmark wordmark-sm">Rayon</h1>
+      <h1 class="wordmark">MaMangathèque</h1>
 
       <nav class="tabs" aria-label="Sections">
         <button type="button" id="tab-discover"   class="tab is-active" aria-current="page">Découvrir</button>
@@ -81,7 +81,7 @@
       <div class="topbar-right">
         <span id="user-email" class="user-email"></span>
         <button type="button" id="logout" class="btn-link">Se déconnecter</button>
-        <button type="button" id="delete-account" class="btn-link">Supprimer mon compte</button>
+        <button type="button" id="delete-account" class="btn-link btn-link-quiet">Supprimer mon compte</button>
       </div>
     </header>
 
@@ -90,8 +90,8 @@
       <!-- ── Découvrir ── -->
       <section id="view-discover">
         <p class="app-intro">
-          Cherche une série pour l'ajouter à ton rayon, puis coche les tomes que tu possèdes.
-          Ceux qui restent en case vide sont ceux qu'il te manque pour compléter la collection.
+          Cherche une série pour l'ajouter à ta mangathèque, puis coche les tomes que tu possèdes.
+          Ceux qui restent vides sont ceux qu'il te manque pour compléter la collection.
         </p>
 
         <form id="search-form" class="search-form" role="search">
@@ -102,12 +102,36 @@
 
         <div id="search-results" class="search-results" hidden></div>
 
-        <h2 class="section-title" id="suggest-title">Les séries les plus suivies</h2>
-        <p class="section-note">Clique sur une couverture pour l'ajouter directement à ton rayon.</p>
+        <h2 class="section-title">Éditions françaises</h2>
+        <p class="section-note">Coffrets et rééditions dont le découpage diffère de l'édition d'origine.</p>
+        <div id="editions" class="poster-grid"></div>
+
+        <details class="manual">
+          <summary>Ajouter une édition qui n'est dans aucune liste</summary>
+          <form id="manual-form" class="manual-form" novalidate>
+            <div class="field">
+              <label for="manual-title">Titre de l'édition</label>
+              <input type="text" id="manual-title" maxlength="120" required>
+            </div>
+            <div class="field">
+              <label for="manual-volumes">Nombre de tomes</label>
+              <input type="number" id="manual-volumes" min="1" max="500" required>
+            </div>
+            <div class="field">
+              <label for="manual-cover">Lien vers une image de couverture</label>
+              <input type="url" id="manual-cover" placeholder="https://…">
+              <p class="field-hint">Facultatif. Clic droit sur une image du web, puis « Copier le lien de l'image ».</p>
+            </div>
+            <button type="submit" class="btn-primary">Ajouter à ma mangathèque</button>
+          </form>
+        </details>
+
+        <h2 class="section-title">Les séries les plus suivies</h2>
+        <p class="section-note">Clique sur une couverture pour l'ajouter directement.</p>
         <div id="suggestions" class="poster-grid"></div>
       </section>
 
-      <!-- ── Collection : les séries ── -->
+      <!-- ── Collection ── -->
       <section id="view-collection" hidden>
         <div id="stats" class="stats" hidden>
           <p><strong id="stat-owned">0</strong> tomes en rayon</p>
@@ -118,7 +142,7 @@
         <div id="series-list" class="poster-grid"></div>
 
         <p id="empty-state" class="empty-state" hidden>
-          Ton rayon est vide. Passe par l'onglet Découvrir pour ajouter une première série.
+          Ta mangathèque est vide. Passe par l'onglet Découvrir pour ajouter une première série.
         </p>
 
         <p id="loading" class="loading" hidden>Chargement…</p>
@@ -148,7 +172,7 @@
         <p id="detail-nothing" class="empty-state" hidden></p>
 
         <div class="danger">
-          <button type="button" id="detail-remove" class="btn-danger">Retirer cette série du rayon</button>
+          <button type="button" id="detail-remove" class="btn-danger">Retirer cette série</button>
         </div>
       </section>
 
@@ -160,8 +184,8 @@
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-heading">
       <h2 id="delete-heading" class="modal-title">Supprimer définitivement le compte</h2>
       <p class="modal-text">
-        Ton rayon, ton pseudo et ton compte seront effacés. Rien n'est conservé et
-        l'opération ne peut pas être annulée.
+        Ta mangathèque, ton pseudo et ton compte seront effacés. Rien n'est conservé
+        et l'opération ne peut pas être annulée.
       </p>
 
       <div class="field">
