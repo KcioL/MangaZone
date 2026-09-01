@@ -138,6 +138,7 @@ $("auth-form").addEventListener("submit", async (e) => {
     } else if (err.message === "pseudo-pris") {
       showError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
     } else {
+      console.error("Firebase Auth :", err.code, err.message, err);
       showError(authMessage(err.code));
     }
   } finally {
@@ -186,9 +187,17 @@ function authMessage(code) {
     "auth/wrong-password":        "Mot de passe incorrect.",
     "auth/too-many-requests":     "Trop de tentatives. Réessaie dans quelques minutes.",
     "auth/missing-email":         "Saisis d'abord ton adresse e-mail.",
-    "auth/operation-not-allowed": "Active la connexion par e-mail dans la console Firebase."
+    "auth/network-request-failed": "Connexion au serveur impossible. Désactive le VPN ou le bloqueur de pub et réessaie.",
+    "auth/operation-not-allowed": "Active le fournisseur E-mail/Mot de passe dans Authentication → Sign-in method.",
+    "auth/admin-restricted-operation": "La création de compte est bloquée. Dans Authentication → Settings → Actions utilisateur, coche « Autoriser la création de comptes ».",
+    "auth/unauthorized-domain":   "Ce domaine n'est pas autorisé. Ajoute-le dans Authentication → Settings → Domaines autorisés.",
+    "auth/password-does-not-meet-requirements": "Le mot de passe ne respecte pas la politique définie dans Firebase.",
+    "auth/invalid-api-key":       "La clé API de firebase-config.js est incorrecte.",
+    "auth/requests-from-referer-are-blocked": "Ce domaine est bloqué par les restrictions de la clé API, côté Google Cloud."
   };
-  return messages[code] || "La connexion a échoué. Vérifie ta configuration Firebase.";
+  // Si le code n'est pas connu, on l'affiche tel quel : c'est ce qui permet
+  // de diagnostiquer au lieu de rester bloqué sur un message générique.
+  return messages[code] || `Échec de l'opération. Code renvoyé par Firebase : ${code || "inconnu"}`;
 }
 
 const showError = (msg) => {

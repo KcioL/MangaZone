@@ -194,6 +194,13 @@ button, input { font: inherit; color: inherit; }
 
 /* ── Recherche ────────────────────────────── */
 
+.app-intro {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  max-width: 60ch;
+  margin: 0 0 28px;
+}
+
 .search-form {
   display: flex;
   gap: 10px;
