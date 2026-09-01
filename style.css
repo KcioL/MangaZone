@@ -1,0 +1,429 @@
+:root {
+  --paper:      #E9E7DF;
+  --surface:    #F8F7F3;
+  --ink:        #1A2238;
+  --ink-soft:   #4A5270;
+  --muted:      #8D8A7C;
+  --seal:       #B33A28;
+  --line:       #CFCCC1;
+  --radius:     3px;
+
+  --font-display: "Shippori Mincho B1", Georgia, serif;
+  --font-body:    "Zen Kaku Gothic New", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; color: inherit; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+/* ── Identité ─────────────────────────────── */
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.6rem;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.4em;
+  color: var(--ink);
+}
+
+.wordmark-sm {
+  font-size: 1.3rem;
+  margin: 0;
+  letter-spacing: 0.18em;
+}
+
+/* ── Connexion ────────────────────────────── */
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 40px 32px 32px;
+}
+
+.auth-intro {
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+  margin: 0 0 28px;
+  max-width: 32ch;
+}
+
+.auth-form { display: flex; flex-direction: column; }
+
+.auth-form label {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.auth-form input {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 18px;
+}
+
+.auth-form input:focus {
+  border-color: var(--ink);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 34, 56, 0.1);
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--surface);
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px 20px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-primary:hover { background: #262F4C; }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--seal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.form-error {
+  color: var(--seal);
+  font-size: 0.86rem;
+  margin: 0 0 14px;
+}
+
+.auth-switch {
+  margin: 22px 0 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+/* ── Barre du haut ────────────────────────── */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.86rem;
+}
+
+.user-email { color: var(--muted); }
+
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+/* ── Recherche ────────────────────────────── */
+
+.search-form {
+  display: flex;
+  gap: 10px;
+}
+
+.search-form input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+}
+
+.search-form input:focus {
+  border-color: var(--ink);
+  outline: none;
+}
+
+.search-results {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result:last-child { border-bottom: none; }
+
+.result img {
+  width: 40px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 2px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.result-info { flex: 1; min-width: 0; }
+
+.result-title {
+  font-weight: 500;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-year {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.result button {
+  background: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  border-radius: var(--radius);
+  padding: 7px 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.result button:hover { background: var(--ink); color: var(--surface); }
+.result button:disabled { border-color: var(--line); color: var(--muted); cursor: default; background: none; }
+
+/* ── Chiffres ─────────────────────────────── */
+
+.stats {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin: 36px 0 8px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.stats p { margin: 0; }
+
+.stats strong {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--ink);
+  margin-right: 6px;
+}
+
+/* ── Séries ───────────────────────────────── */
+
+.series { margin-top: 44px; }
+
+.series-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.series-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.series-count {
+  font-size: 0.86rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.series-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.series-remove:hover { color: var(--seal); }
+
+.progress {
+  height: 3px;
+  background: var(--line);
+  border-radius: 2px;
+  margin: 10px 0 20px;
+  overflow: hidden;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.volumes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 14px;
+}
+
+/* Un tome = un bouton bascule */
+.vol {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 2px;
+  display: block;
+}
+
+.vol img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+  display: block;
+}
+
+/* Tome manquant : emplacement vide sur l'étagère */
+.vol-missing {
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.35);
+  display: grid;
+  place-items: center;
+}
+
+.vol-missing img {
+  opacity: 0.16;
+  filter: grayscale(1);
+  position: absolute;
+  inset: 0;
+}
+
+.vol-missing .vol-num {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--muted);
+}
+
+.vol-missing:hover { border-color: var(--ink-soft); border-style: solid; }
+
+/* Tome possédé : couverture pleine + cachet */
+.vol-owned::after {
+  content: "有";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: #fff;
+  background: var(--seal);
+  border-radius: 2px;
+}
+
+.vol-owned .vol-num {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 3px 7px;
+  font-size: 0.74rem;
+  color: #fff;
+  background: rgba(26, 34, 56, 0.82);
+  border-radius: 0 2px 0 2px;
+}
+
+/* ── Divers ───────────────────────────────── */
+
+.empty-state, .loading {
+  margin-top: 56px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--surface);
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  z-index: 10;
+}
+
+@media (max-width: 560px) {
+  .wrap { padding: 24px 16px 60px; }
+  .search-form { flex-direction: column; }
+  .volumes { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+  .stats { gap: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
