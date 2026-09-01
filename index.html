@@ -128,9 +128,15 @@
       <section id="view-series" hidden>
         <button type="button" id="back-to-collection" class="btn-link back-link">Retour à la collection</button>
 
-        <h2 class="series-title" id="detail-title"></h2>
-        <p class="series-count" id="detail-count"></p>
-        <div class="progress"><span id="detail-bar"></span></div>
+        <div class="detail-head">
+          <img id="detail-cover" class="detail-cover" alt="" referrerpolicy="no-referrer">
+          <div class="detail-meta">
+            <h2 class="series-title" id="detail-title"></h2>
+            <p class="series-count" id="detail-count"></p>
+            <div class="progress"><span id="detail-bar"></span></div>
+            <button type="button" id="detail-count-edit" class="btn-link">Corriger le nombre de tomes</button>
+          </div>
+        </div>
 
         <div class="filters" role="group" aria-label="Filtrer les tomes">
           <button type="button" class="filter is-active" data-filter="all">Tous</button>

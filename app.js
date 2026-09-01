@@ -14,8 +14,9 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-const API   = "https://api.mangadex.org";
-const COVER = "https://uploads.mangadex.org/covers";
+// Jikan (MyAnimeList). Contrairement à MangaDex, cette API envoie des en-têtes
+// CORS, donc elle est appelable directement depuis un navigateur.
+const API = "https://api.jikan.moe/v4";
 
 const $ = (id) => document.getElementById(id);
 
@@ -250,14 +251,8 @@ async function loadSuggestions() {
   grid.innerHTML = `<p class="loading">Chargement des suggestions…</p>`;
 
   try {
-    const base = `${API}/manga?limit=18&includes[]=cover_art`
-               + `&contentRating[]=safe&contentRating[]=suggestive`;
-
-    // Le tri par popularité est le plus utile, mais c'est aussi le paramètre le
-    // plus susceptible d'être rejeté : on retente sans lui plutôt que d'échouer.
-    let res = await fetch(`${base}&order[followedCount]=desc`);
-    if (!res.ok) res = await fetch(base);
-    if (!res.ok) throw new Error(`MangaDex a répondu ${res.status}`);
+    const res = await fetch(`${API}/top/manga?type=manga&filter=bypopularity&limit=20`);
+    if (!res.ok) throw new Error(`Jikan a répondu ${res.status}`);
 
     const { data } = await res.json();
     if (!data?.length) throw new Error("aucune série renvoyée");
@@ -266,45 +261,44 @@ async function loadSuggestions() {
     data.forEach((manga) => grid.appendChild(suggestionCard(manga)));
   } catch (err) {
     suggestionsLoaded = false;
-    console.error("Suggestions MangaDex :", err);
+    console.error("Suggestions Jikan :", err);
     grid.innerHTML = `<p class="loading">Suggestions indisponibles pour le moment (${escapeHtml(err.message)}). La recherche ci-dessus fonctionne normalement.</p>`;
   }
 }
 
 function suggestionCard(manga) {
-  const title = pickTitle(manga.attributes);
-  const art   = manga.relationships.find((r) => r.type === "cover_art");
-  const thumb = art ? `${COVER}/${manga.id}/${art.attributes.fileName}.256.jpg` : "";
+  const id    = String(manga.mal_id);
+  const title = pickTitle(manga);
+  const cover = pickCover(manga);
 
   const card = document.createElement("button");
   card.type = "button";
   card.className = "poster";
   card.innerHTML = `
     <span class="poster-img">
-      <img src="${thumb}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <img src="${cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
     </span>
     <span class="poster-name">${escapeHtml(title)}</span>
-    <span class="poster-meta"></span>`;
+    <span class="poster-meta">${manga.volumes ? `${manga.volumes} tomes` : "Série en cours"}</span>`;
 
   const meta = card.querySelector(".poster-meta");
   const marquerSuivie = () => {
-    if (collectionCache.some((s) => s.id === manga.id)) {
-      card.querySelector(".poster-img").insertAdjacentHTML(
-        "beforeend", `<span class="poster-check">Suivie</span>`);
-      meta.textContent = "Déjà dans ton rayon";
-    }
+    if (!collectionCache.some((s) => s.id === id)) return;
+    card.querySelector(".poster-img").insertAdjacentHTML(
+      "beforeend", `<span class="poster-check">Suivie</span>`);
+    meta.textContent = "Déjà dans ton rayon";
   };
   marquerSuivie();
 
   card.addEventListener("click", async () => {
-    if (collectionCache.some((s) => s.id === manga.id)) return showView("collection");
+    if (collectionCache.some((s) => s.id === id)) return showView("collection");
     meta.textContent = "Ajout…";
     try {
-      await addSeries(manga, title);
+      await addSeries(manga);
       toast(`${title} est dans ton rayon.`);
       marquerSuivie();
-    } catch {
-      meta.textContent = "Aucun tome référencé";
+    } catch (err) {
+      meta.textContent = err.message === "annule" ? "Ajout annulé" : "Ajout impossible";
     }
   });
 
@@ -323,11 +317,11 @@ $("search-form").addEventListener("submit", async (e) => {
   box.innerHTML = `<p class="result">Recherche en cours…</p>`;
 
   try {
-    const url = `${API}/manga?title=${encodeURIComponent(term)}`
-              + `&limit=8&includes[]=cover_art&order[relevance]=desc`
-              + `&contentRating[]=safe&contentRating[]=suggestive`;
-    const res  = await fetch(url);
-    if (!res.ok) throw new Error(res.status);
+    const url = `${API}/manga?q=${encodeURIComponent(term)}&limit=10&sfw=true`;
+    const res = await fetch(url);
+    if (res.status === 429) throw new Error("Trop de recherches d'affilée. Attends quelques secondes.");
+    if (!res.ok) throw new Error(`Jikan a répondu ${res.status}`);
+
     const { data } = await res.json();
 
     if (!data.length) {
@@ -336,78 +330,82 @@ $("search-form").addEventListener("submit", async (e) => {
     }
     box.innerHTML = "";
     data.forEach((manga) => box.appendChild(resultRow(manga)));
-  } catch {
-    box.innerHTML = `<p class="result">La recherche n'a pas abouti. Vérifie ta connexion et réessaie.</p>`;
+  } catch (err) {
+    console.error("Recherche Jikan :", err);
+    box.innerHTML = `<p class="result">${escapeHtml(err.message)}</p>`;
   }
 });
 
 function resultRow(manga) {
-  const title = pickTitle(manga.attributes);
-  const art   = manga.relationships.find((r) => r.type === "cover_art");
-  const thumb = art ? `${COVER}/${manga.id}/${art.attributes.fileName}.256.jpg` : "";
-  const owned = collectionCache.some((s) => s.id === manga.id);
+  const id    = String(manga.mal_id);
+  const title = pickTitle(manga);
+  const suivie = collectionCache.some((s) => s.id === id);
 
   const row = document.createElement("div");
   row.className = "result";
   row.innerHTML = `
-    <img src="${thumb}" alt="" loading="lazy" referrerpolicy="no-referrer">
+    <img src="${pickCover(manga)}" alt="" loading="lazy" referrerpolicy="no-referrer">
     <div class="result-info">
       <span class="result-title">${escapeHtml(title)}</span>
-      <span class="result-year">${manga.attributes.year || ""}</span>
+      <span class="result-year">${manga.volumes ? `${manga.volumes} tomes` : "nombre de tomes inconnu"}${manga.published?.prop?.from?.year ? ` · ${manga.published.prop.from.year}` : ""}</span>
     </div>
-    <button type="button" ${owned ? "disabled" : ""}>${owned ? "Déjà suivie" : "Ajouter"}</button>`;
+    <button type="button" ${suivie ? "disabled" : ""}>${suivie ? "Déjà suivie" : "Ajouter"}</button>`;
 
   const btn = row.querySelector("button");
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     btn.textContent = "Ajout…";
     try {
-      await addSeries(manga, title);
+      await addSeries(manga);
       btn.textContent = "Ajoutée";
       toast(`${title} est dans ton rayon.`);
-    } catch {
+    } catch (err) {
       btn.disabled = false;
-      btn.textContent = "Réessayer";
-      toast("Aucun tome référencé pour cette série.");
+      btn.textContent = "Ajouter";
+      if (err.message !== "annule") toast("L'ajout a échoué.");
     }
   });
   return row;
 }
 
-function pickTitle(attr) {
-  if (attr.title?.fr) return attr.title.fr;
-  const altFr = (attr.altTitles || []).find((t) => t.fr);
-  if (altFr) return altFr.fr;
-  return attr.title?.en || Object.values(attr.title || {})[0] || "Sans titre";
+/* MyAnimeList référence les titres en romaji ; c'est en général celui de
+   l'édition française aussi. On retombe sur l'anglais si besoin. */
+function pickTitle(manga) {
+  return manga.title || manga.title_english || "Sans titre";
+}
+
+function pickCover(manga) {
+  const img = manga.images?.jpg || {};
+  return img.large_image_url || img.image_url || img.small_image_url || "";
 }
 
 /* ══════════════════ Ajout d'une série ══════════════════ */
 
-async function addSeries(manga, title) {
-  const res = await fetch(`${API}/cover?manga[]=${manga.id}&limit=100&order[volume]=asc`);
-  const { data } = await res.json();
+async function addSeries(manga) {
+  let total = Number(manga.volumes) || 0;
 
-  // Plusieurs éditions publient la même couverture : on garde une image par tome,
-  // en privilégiant l'édition française puis japonaise.
-  const rank = { fr: 3, ja: 2 };
-  const best = new Map();
+  // Une série en cours n'a pas de total connu : on demande où elle en est.
+  if (!total) {
+    const saisi = prompt(
+      `Combien de tomes sont parus pour « ${pickTitle(manga)} » ?\n` +
+      `MyAnimeList ne le sait pas pour les séries en cours. Tu pourras corriger plus tard.`,
+      "10");
+    if (saisi === null) throw new Error("annule");
+    total = Number(saisi);
+  }
 
-  data.forEach((cover) => {
-    const vol = cover.attributes.volume;
-    if (!vol) return;
-    const score = rank[cover.attributes.locale] || 1;
-    const kept  = best.get(vol);
-    if (!kept || score > kept.score) best.set(vol, { score, file: cover.attributes.fileName });
-  });
+  if (!Number.isInteger(total) || total < 1 || total > 500) {
+    toast("Indique un nombre de tomes entre 1 et 500.");
+    throw new Error("total invalide");
+  }
 
-  const volumes = [...best.entries()]
-    .map(([n, v]) => ({ n, file: v.file }))
-    .sort((a, b) => parseFloat(a.n) - parseFloat(b.n));
-
-  if (!volumes.length) throw new Error("aucun tome");
-
-  await setDoc(doc(db, "users", currentUser.uid, "series", manga.id), {
-    id: manga.id, title, volumes, owned: [], addedAt: Date.now()
+  await setDoc(doc(db, "users", currentUser.uid, "series", String(manga.mal_id)), {
+    id: String(manga.mal_id),
+    title: pickTitle(manga),
+    cover: pickCover(manga),
+    totalVolumes: total,
+    owned: [],
+    addedAt: Date.now()
   });
 }
 
@@ -439,22 +437,22 @@ function renderCollection() {
 
   collectionCache.forEach((series) => {
     owned += series.owned.length;
-    total += series.volumes.length;
+    total += series.totalVolumes;
 
-    const complete = series.owned.length === series.volumes.length;
-    const cover    = series.volumes[0];
+    const manquants = series.totalVolumes - series.owned.length;
+    const complete  = manquants === 0;
 
     const card = document.createElement("button");
     card.type = "button";
     card.className = "poster";
     card.innerHTML = `
       <span class="poster-img">
-        <img src="${COVER}/${series.id}/${cover.file}.256.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
-        <span class="poster-badge">${series.owned.length} / ${series.volumes.length}</span>
+        <img src="${series.cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
+        <span class="poster-badge">${series.owned.length} / ${series.totalVolumes}</span>
         ${complete ? `<span class="poster-check">Complète</span>` : ""}
       </span>
       <span class="poster-name">${escapeHtml(series.title)}</span>
-      <span class="poster-meta">${complete ? "Rien ne manque" : `${series.volumes.length - series.owned.length} tomes à trouver`}</span>`;
+      <span class="poster-meta">${complete ? "Rien ne manque" : `${manquants} ${manquants > 1 ? "tomes" : "tome"} à trouver`}</span>`;
 
     card.addEventListener("click", () => openSeries(series.id));
     grid.appendChild(card);
@@ -489,21 +487,25 @@ function renderDetail() {
   const series = collectionCache.find((s) => s.id === openSeriesId);
   if (!series) return showView("collection");   // la série vient d'être retirée
 
-  const manquants = series.volumes.length - series.owned.length;
-  const pct = series.volumes.length
-    ? Math.round((series.owned.length / series.volumes.length) * 100) : 0;
+  const manquants = series.totalVolumes - series.owned.length;
+  const pct = series.totalVolumes
+    ? Math.round((series.owned.length / series.totalVolumes) * 100) : 0;
 
+  $("detail-cover").src         = series.cover || "";
   $("detail-title").textContent = series.title;
   $("detail-count").textContent = manquants === 0
-    ? `Collection complète : ${series.volumes.length} tomes`
-    : `${series.owned.length} tomes sur ${series.volumes.length} — il t'en manque ${manquants}`;
+    ? `Collection complète : ${series.totalVolumes} tomes`
+    : `${series.owned.length} tomes sur ${series.totalVolumes} — il t'en manque ${manquants}`;
   $("detail-bar").style.width = `${pct}%`;
 
   const grid = $("detail-volumes");
   grid.innerHTML = "";
 
-  const visibles = series.volumes.filter((v) => {
-    const has = series.owned.includes(v.n);
+  // Les numéros sont déduits du total : rien n'est stocké pour un tome manquant.
+  const numeros = Array.from({ length: series.totalVolumes }, (_, i) => String(i + 1));
+
+  const visibles = numeros.filter((n) => {
+    const has = series.owned.includes(n);
     return volumeFilter === "all"
         || (volumeFilter === "owned"   && has)
         || (volumeFilter === "missing" && !has);
@@ -514,22 +516,44 @@ function renderDetail() {
     ? "Tu ne possèdes encore aucun tome de cette série."
     : "Il ne te manque aucun tome.";
 
-  visibles.forEach((vol) => {
-    const has = series.owned.includes(vol.n);
+  visibles.forEach((n) => {
+    const has = series.owned.includes(n);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = `vol ${has ? "vol-owned" : "vol-missing"}`;
     btn.setAttribute("aria-pressed", has);
     btn.title = has
-      ? `Tome ${vol.n} — possédé. Cliquer pour retirer.`
-      : `Tome ${vol.n} — manquant. Cliquer pour ajouter.`;
-    btn.innerHTML = `
-      <img src="${COVER}/${series.id}/${vol.file}.256.jpg" alt="Tome ${vol.n}" loading="lazy" referrerpolicy="no-referrer">
-      <span class="vol-num">${vol.n}</span>`;
-    btn.addEventListener("click", () => toggleVolume(series.id, vol.n, has));
+      ? `Tome ${n} — possédé. Cliquer pour retirer.`
+      : `Tome ${n} — manquant. Cliquer pour ajouter.`;
+    btn.innerHTML = `<span class="vol-num">${n}</span>`;
+    btn.addEventListener("click", () => toggleVolume(series.id, n, has));
     grid.appendChild(btn);
   });
 }
+
+/* Le nombre de tomes de l'édition française diffère souvent du référencement
+   japonais, et une série en cours avance : il faut pouvoir le corriger. */
+$("detail-count-edit").addEventListener("click", async () => {
+  const series = collectionCache.find((s) => s.id === openSeriesId);
+  if (!series) return;
+
+  const saisi = prompt(
+    `Combien de tomes compte « ${series.title} » ?`,
+    String(series.totalVolumes));
+  if (saisi === null) return;
+
+  const total = Number(saisi);
+  if (!Number.isInteger(total) || total < 1 || total > 500) {
+    return toast("Indique un nombre entre 1 et 500.");
+  }
+
+  // On retire de la liste les tomes cochés qui dépassent le nouveau total.
+  const owned = series.owned.filter((n) => Number(n) <= total);
+
+  await updateDoc(doc(db, "users", currentUser.uid, "series", series.id),
+    { totalVolumes: total, owned });
+  toast("Nombre de tomes mis à jour.");
+});
 
 async function toggleVolume(seriesId, n, has) {
   const ref = doc(db, "users", currentUser.uid, "series", seriesId);

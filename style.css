@@ -405,6 +405,25 @@ button, input { font: inherit; color: inherit; }
 
 .back-link { margin-bottom: 24px; display: inline-block; }
 
+.detail-head {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.detail-cover {
+  width: 140px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 2px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.detail-meta { flex: 1; min-width: 0; }
+.detail-meta .progress { margin: 14px 0 16px; }
+
 .series-title {
   font-family: var(--font-display);
   font-size: 1.6rem;
@@ -461,39 +480,26 @@ button, input { font: inherit; color: inherit; }
   display: block;
 }
 
-.vol img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 2px;
-  display: block;
-}
+.vol { display: grid; place-items: center; }
+
+.vol-num { font-family: var(--font-display); font-size: 1.6rem; }
 
 /* Tome manquant : un emplacement vide sur l'étagère */
 .vol-missing {
   border: 1px dashed var(--line);
-  background: rgba(255, 255, 255, 0.35);
-  display: grid;
-  place-items: center;
-}
-
-.vol-missing img {
-  opacity: 0.16;
-  filter: grayscale(1);
-  position: absolute;
-  inset: 0;
-}
-
-.vol-missing .vol-num {
-  position: relative;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
+  background: rgba(255, 255, 255, 0.4);
   color: var(--muted);
 }
 
 .vol-missing:hover { border-color: var(--ink-soft); border-style: solid; }
 
-/* Tome possédé : couverture pleine et cachet */
+/* Tome possédé : la tranche est là, avec son cachet */
+.vol-owned {
+  background: var(--ink);
+  color: var(--surface);
+  border: 1px solid var(--ink);
+}
+
 .vol-owned::after {
   content: "有";
   position: absolute;
@@ -508,17 +514,6 @@ button, input { font: inherit; color: inherit; }
   color: #fff;
   background: var(--seal);
   border-radius: 2px;
-}
-
-.vol-owned .vol-num {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  padding: 3px 7px;
-  font-size: 0.74rem;
-  color: #fff;
-  background: rgba(26, 34, 56, 0.82);
-  border-radius: 0 2px 0 2px;
 }
 
 /* ── Zone sensible ────────────────────────── */
@@ -597,7 +592,9 @@ button, input { font: inherit; color: inherit; }
   .wrap { padding: 24px 16px 60px; }
   .search-form { flex-direction: column; }
   .poster-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 16px 12px; }
-  .volumes { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
+  .volumes { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; }
+  .detail-head { gap: 16px; }
+  .detail-cover { width: 96px; }
   .stats { gap: 20px; }
 }
 
