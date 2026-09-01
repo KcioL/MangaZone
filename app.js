@@ -160,18 +160,17 @@ async function signUp(email, pass) {
 
   const { user } = await createUserWithEmailAndPassword(auth, email, pass);
 
+  // Le compte existe maintenant. Si l'enregistrement du pseudo échoue (règles
+  // Firestore non publiées, pseudo réservé entre-temps), on garde le compte :
+  // le supprimer laisserait la personne sans rien alors qu'elle est connectée.
   try {
-    // Les règles refusent l'écriture si le document existe déjà : c'est ce qui
-    // tranche si deux personnes réservent le même pseudo en même temps.
     await setDoc(doc(db, "usernames", key), { uid: user.uid });
     await setDoc(doc(db, "users", user.uid), { pseudo, createdAt: Date.now() });
     await updateProfile(user, { displayName: pseudo });
     $("user-email").textContent = pseudo;
-  } catch {
-    // Le pseudo vient d'être pris : on annule le compte plutôt que de le laisser
-    // orphelin, et la personne peut réessayer avec un autre.
-    await user.delete();
-    throw new Error("pseudo-pris");
+  } catch (err) {
+    console.error("Enregistrement du pseudo :", err.code, err.message, err);
+    toast("Compte créé, mais le pseudo n'a pas pu être enregistré. Vérifie les règles Firestore.");
   }
 }
 
@@ -182,7 +181,7 @@ function authMessage(code) {
     "auth/email-already-in-use":  "Cette adresse a déjà un compte. Connecte-toi.",
     "auth/invalid-email":         "Cette adresse e-mail n'est pas valide.",
     "auth/weak-password":         "Le mot de passe doit faire au moins 6 caractères.",
-    "auth/invalid-credential":    "Adresse ou mot de passe incorrect.",
+    "auth/invalid-credential":    "Adresse ou mot de passe incorrect — ou aucun compte pour cette adresse.",
     "auth/user-not-found":        "Aucun compte avec cette adresse.",
     "auth/wrong-password":        "Mot de passe incorrect.",
     "auth/too-many-requests":     "Trop de tentatives. Réessaie dans quelques minutes.",

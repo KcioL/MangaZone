@@ -12,6 +12,10 @@
   --font-body:    "Zen Kaku Gothic New", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Une classe comme .field { display: flex } écrase la règle par défaut du
+   navigateur pour [hidden]. Sans cette ligne, les champs masqués restent visibles. */
+[hidden] { display: none !important; }
+
 * { box-sizing: border-box; }
 
 html, body {
