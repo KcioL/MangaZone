@@ -18,6 +18,32 @@ const db   = getFirestore(app);
 // CORS, donc elle est appelable directement depuis un navigateur.
 const API = "https://api.jikan.moe/v4";
 
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* Jikan renvoie régulièrement des 429 (limite de débit) et des 5xx passagers.
+   Ces codes-là méritent une nouvelle tentative ; une vraie erreur 4xx, non. */
+async function jikan(chemin, essais = 3) {
+  let dernier = "";
+
+  for (let i = 0; i < essais; i++) {
+    try {
+      const res = await fetch(`${API}${chemin}`);
+      if (res.ok) return res.json();
+
+      dernier = res.status === 429
+        ? "trop de requêtes d'affilée"
+        : `Jikan a répondu ${res.status}`;
+
+      if (res.status < 500 && res.status !== 429) break;
+    } catch {
+      dernier = "serveur injoignable";
+    }
+    await attendre(900 * (i + 1));
+  }
+
+  throw new Error(dernier || "échec de la requête");
+}
+
 const $ = (id) => document.getElementById(id);
 
 let currentUser     = null;
@@ -250,20 +276,37 @@ async function loadSuggestions() {
   const grid = $("suggestions");
   grid.innerHTML = `<p class="loading">Chargement des suggestions…</p>`;
 
-  try {
-    const res = await fetch(`${API}/top/manga?type=manga&filter=bypopularity&limit=20`);
-    if (!res.ok) throw new Error(`Jikan a répondu ${res.status}`);
+  // Le classement est parfois lent chez Jikan ; on garde une route de repli.
+  const routes = [
+    "/top/manga?limit=20",
+    "/manga?order_by=popularity&sort=asc&limit=20&sfw=true"
+  ];
 
-    const { data } = await res.json();
-    if (!data?.length) throw new Error("aucune série renvoyée");
+  let data = null, erreur = "";
 
-    grid.innerHTML = "";
-    data.forEach((manga) => grid.appendChild(suggestionCard(manga)));
-  } catch (err) {
-    suggestionsLoaded = false;
-    console.error("Suggestions Jikan :", err);
-    grid.innerHTML = `<p class="loading">Suggestions indisponibles pour le moment (${escapeHtml(err.message)}). La recherche ci-dessus fonctionne normalement.</p>`;
+  for (const route of routes) {
+    try {
+      ({ data } = await jikan(route));
+      if (data?.length) break;
+    } catch (err) {
+      erreur = err.message;
+    }
   }
+
+  if (!data?.length) {
+    suggestionsLoaded = false;
+    console.error("Suggestions Jikan :", erreur);
+    grid.innerHTML = `
+      <p class="loading">
+        Suggestions indisponibles pour le moment (${escapeHtml(erreur || "aucun résultat")}).
+        <button type="button" class="btn-link" id="suggest-retry">Réessayer</button>
+      </p>`;
+    $("suggest-retry").addEventListener("click", loadSuggestions);
+    return;
+  }
+
+  grid.innerHTML = "";
+  data.forEach((manga) => grid.appendChild(suggestionCard(manga)));
 }
 
 function suggestionCard(manga) {
@@ -317,12 +360,7 @@ $("search-form").addEventListener("submit", async (e) => {
   box.innerHTML = `<p class="result">Recherche en cours…</p>`;
 
   try {
-    const url = `${API}/manga?q=${encodeURIComponent(term)}&limit=10&sfw=true`;
-    const res = await fetch(url);
-    if (res.status === 429) throw new Error("Trop de recherches d'affilée. Attends quelques secondes.");
-    if (!res.ok) throw new Error(`Jikan a répondu ${res.status}`);
-
-    const { data } = await res.json();
+    const { data } = await jikan(`/manga?q=${encodeURIComponent(term)}&limit=10&sfw=true`);
 
     if (!data.length) {
       box.innerHTML = `<p class="result">Aucune série trouvée pour « ${escapeHtml(term)} ». Essaie le titre original ou anglais.</p>`;
@@ -332,7 +370,7 @@ $("search-form").addEventListener("submit", async (e) => {
     data.forEach((manga) => box.appendChild(resultRow(manga)));
   } catch (err) {
     console.error("Recherche Jikan :", err);
-    box.innerHTML = `<p class="result">${escapeHtml(err.message)}</p>`;
+    box.innerHTML = `<p class="result">La recherche n'a pas abouti : ${escapeHtml(err.message)}. Réessaie dans quelques secondes.</p>`;
   }
 });
 
