@@ -267,6 +267,84 @@ function showView(name) {
   window.scrollTo(0, 0);
 }
 
+/* ══════════════════ Sources de données ══════════════════
+
+   AniList est la source principale : elle possède sa propre base, autorise
+   CORS et ne dépend d'aucun service tiers. Jikan sert de repli, mais il se
+   contente de relayer MyAnimeList et renvoie un 504 dès que MAL ne répond pas.
+   ═══════════════════════════════════════════════════════ */
+
+const ANILIST = "https://graphql.anilist.co";
+
+const CHAMPS = `
+  id
+  title { romaji english }
+  volumes
+  coverImage { large }
+  startDate { year }
+`;
+
+async function anilist(query, variables = {}) {
+  const res = await fetch(ANILIST, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify({ query, variables })
+  });
+
+  if (!res.ok) throw new Error(`AniList a répondu ${res.status}`);
+
+  const json = await res.json();
+  if (json.errors?.length) throw new Error(json.errors[0].message);
+  return json.data;
+}
+
+/* Les deux sources sont ramenées à une même forme, pour que le reste du code
+   ignore d'où viennent les données. */
+const depuisAniList = (m) => ({
+  id:      `al-${m.id}`,
+  title:   m.title?.romaji || m.title?.english || "Sans titre",
+  cover:   m.coverImage?.large || "",
+  volumes: m.volumes || 0,
+  year:    m.startDate?.year || null
+});
+
+const depuisJikan = (m) => ({
+  id:      `mal-${m.mal_id}`,
+  title:   m.title || m.title_english || "Sans titre",
+  cover:   m.images?.jpg?.large_image_url || m.images?.jpg?.image_url || "",
+  volumes: m.volumes || 0,
+  year:    m.published?.prop?.from?.year || null
+});
+
+async function seriesPopulaires() {
+  try {
+    const d = await anilist(
+      `query { Page(perPage: 20) { media(
+         type: MANGA, format: MANGA, sort: POPULARITY_DESC, isAdult: false
+       ) { ${CHAMPS} } } }`);
+    return d.Page.media.map(depuisAniList);
+  } catch (err) {
+    console.warn("AniList indisponible, repli sur Jikan :", err.message);
+    const { data } = await jikan("/top/manga?limit=20");
+    return data.map(depuisJikan);
+  }
+}
+
+async function chercherSeries(terme) {
+  try {
+    const d = await anilist(
+      `query ($q: String) { Page(perPage: 10) { media(
+         type: MANGA, search: $q, format_not: NOVEL, isAdult: false
+       ) { ${CHAMPS} } } }`,
+      { q: terme });
+    return d.Page.media.map(depuisAniList);
+  } catch (err) {
+    console.warn("AniList indisponible, repli sur Jikan :", err.message);
+    const { data } = await jikan(`/manga?q=${encodeURIComponent(terme)}&limit=10&sfw=true`);
+    return data.map(depuisJikan);
+  }
+}
+
 /* ══════════════════ Suggestions ══════════════════ */
 
 async function loadSuggestions() {
@@ -276,57 +354,38 @@ async function loadSuggestions() {
   const grid = $("suggestions");
   grid.innerHTML = `<p class="loading">Chargement des suggestions…</p>`;
 
-  // Le classement est parfois lent chez Jikan ; on garde une route de repli.
-  const routes = [
-    "/top/manga?limit=20",
-    "/manga?order_by=popularity&sort=asc&limit=20&sfw=true"
-  ];
+  try {
+    const series = await seriesPopulaires();
+    if (!series.length) throw new Error("aucune série renvoyée");
 
-  let data = null, erreur = "";
-
-  for (const route of routes) {
-    try {
-      ({ data } = await jikan(route));
-      if (data?.length) break;
-    } catch (err) {
-      erreur = err.message;
-    }
-  }
-
-  if (!data?.length) {
+    grid.innerHTML = "";
+    series.forEach((serie) => grid.appendChild(suggestionCard(serie)));
+  } catch (err) {
     suggestionsLoaded = false;
-    console.error("Suggestions Jikan :", erreur);
+    console.error("Suggestions :", err);
     grid.innerHTML = `
       <p class="loading">
-        Suggestions indisponibles pour le moment (${escapeHtml(erreur || "aucun résultat")}).
+        Suggestions indisponibles pour le moment (${escapeHtml(err.message)}).
         <button type="button" class="btn-link" id="suggest-retry">Réessayer</button>
       </p>`;
     $("suggest-retry").addEventListener("click", loadSuggestions);
-    return;
   }
-
-  grid.innerHTML = "";
-  data.forEach((manga) => grid.appendChild(suggestionCard(manga)));
 }
 
-function suggestionCard(manga) {
-  const id    = String(manga.mal_id);
-  const title = pickTitle(manga);
-  const cover = pickCover(manga);
-
+function suggestionCard(serie) {
   const card = document.createElement("button");
   card.type = "button";
   card.className = "poster";
   card.innerHTML = `
     <span class="poster-img">
-      <img src="${cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <img src="${serie.cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
     </span>
-    <span class="poster-name">${escapeHtml(title)}</span>
-    <span class="poster-meta">${manga.volumes ? `${manga.volumes} tomes` : "Série en cours"}</span>`;
+    <span class="poster-name">${escapeHtml(serie.title)}</span>
+    <span class="poster-meta">${serie.volumes ? `${serie.volumes} tomes` : "Série en cours"}</span>`;
 
   const meta = card.querySelector(".poster-meta");
   const marquerSuivie = () => {
-    if (!collectionCache.some((s) => s.id === id)) return;
+    if (!collectionCache.some((s) => s.id === serie.id)) return;
     card.querySelector(".poster-img").insertAdjacentHTML(
       "beforeend", `<span class="poster-check">Suivie</span>`);
     meta.textContent = "Déjà dans ton rayon";
@@ -334,11 +393,11 @@ function suggestionCard(manga) {
   marquerSuivie();
 
   card.addEventListener("click", async () => {
-    if (collectionCache.some((s) => s.id === id)) return showView("collection");
+    if (collectionCache.some((s) => s.id === serie.id)) return showView("collection");
     meta.textContent = "Ajout…";
     try {
-      await addSeries(manga);
-      toast(`${title} est dans ton rayon.`);
+      await addSeries(serie);
+      toast(`${serie.title} est dans ton rayon.`);
       marquerSuivie();
     } catch (err) {
       meta.textContent = err.message === "annule" ? "Ajout annulé" : "Ajout impossible";
@@ -352,40 +411,38 @@ function suggestionCard(manga) {
 
 $("search-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const term = $("search-input").value.trim();
-  if (!term) return;
+  const terme = $("search-input").value.trim();
+  if (!terme) return;
 
   const box = $("search-results");
   box.hidden = false;
   box.innerHTML = `<p class="result">Recherche en cours…</p>`;
 
   try {
-    const { data } = await jikan(`/manga?q=${encodeURIComponent(term)}&limit=10&sfw=true`);
+    const series = await chercherSeries(terme);
 
-    if (!data.length) {
-      box.innerHTML = `<p class="result">Aucune série trouvée pour « ${escapeHtml(term)} ». Essaie le titre original ou anglais.</p>`;
+    if (!series.length) {
+      box.innerHTML = `<p class="result">Aucune série trouvée pour « ${escapeHtml(terme)} ». Essaie le titre original ou anglais.</p>`;
       return;
     }
     box.innerHTML = "";
-    data.forEach((manga) => box.appendChild(resultRow(manga)));
+    series.forEach((serie) => box.appendChild(resultRow(serie)));
   } catch (err) {
-    console.error("Recherche Jikan :", err);
+    console.error("Recherche :", err);
     box.innerHTML = `<p class="result">La recherche n'a pas abouti : ${escapeHtml(err.message)}. Réessaie dans quelques secondes.</p>`;
   }
 });
 
-function resultRow(manga) {
-  const id    = String(manga.mal_id);
-  const title = pickTitle(manga);
-  const suivie = collectionCache.some((s) => s.id === id);
+function resultRow(serie) {
+  const suivie = collectionCache.some((s) => s.id === serie.id);
 
   const row = document.createElement("div");
   row.className = "result";
   row.innerHTML = `
-    <img src="${pickCover(manga)}" alt="" loading="lazy" referrerpolicy="no-referrer">
+    <img src="${serie.cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
     <div class="result-info">
-      <span class="result-title">${escapeHtml(title)}</span>
-      <span class="result-year">${manga.volumes ? `${manga.volumes} tomes` : "nombre de tomes inconnu"}${manga.published?.prop?.from?.year ? ` · ${manga.published.prop.from.year}` : ""}</span>
+      <span class="result-title">${escapeHtml(serie.title)}</span>
+      <span class="result-year">${serie.volumes ? `${serie.volumes} tomes` : "nombre de tomes inconnu"}${serie.year ? ` · ${serie.year}` : ""}</span>
     </div>
     <button type="button" ${suivie ? "disabled" : ""}>${suivie ? "Déjà suivie" : "Ajouter"}</button>`;
 
@@ -394,9 +451,9 @@ function resultRow(manga) {
     btn.disabled = true;
     btn.textContent = "Ajout…";
     try {
-      await addSeries(manga);
+      await addSeries(serie);
       btn.textContent = "Ajoutée";
-      toast(`${title} est dans ton rayon.`);
+      toast(`${serie.title} est dans ton rayon.`);
     } catch (err) {
       btn.disabled = false;
       btn.textContent = "Ajouter";
@@ -406,27 +463,16 @@ function resultRow(manga) {
   return row;
 }
 
-/* MyAnimeList référence les titres en romaji ; c'est en général celui de
-   l'édition française aussi. On retombe sur l'anglais si besoin. */
-function pickTitle(manga) {
-  return manga.title || manga.title_english || "Sans titre";
-}
-
-function pickCover(manga) {
-  const img = manga.images?.jpg || {};
-  return img.large_image_url || img.image_url || img.small_image_url || "";
-}
-
 /* ══════════════════ Ajout d'une série ══════════════════ */
 
-async function addSeries(manga) {
-  let total = Number(manga.volumes) || 0;
+async function addSeries(serie) {
+  let total = Number(serie.volumes) || 0;
 
   // Une série en cours n'a pas de total connu : on demande où elle en est.
   if (!total) {
     const saisi = prompt(
-      `Combien de tomes sont parus pour « ${pickTitle(manga)} » ?\n` +
-      `MyAnimeList ne le sait pas pour les séries en cours. Tu pourras corriger plus tard.`,
+      `Combien de tomes sont parus pour « ${serie.title} » ?\n` +
+      `La série est en cours, le total n'est pas référencé. Tu pourras le corriger plus tard.`,
       "10");
     if (saisi === null) throw new Error("annule");
     total = Number(saisi);
@@ -437,10 +483,10 @@ async function addSeries(manga) {
     throw new Error("total invalide");
   }
 
-  await setDoc(doc(db, "users", currentUser.uid, "series", String(manga.mal_id)), {
-    id: String(manga.mal_id),
-    title: pickTitle(manga),
-    cover: pickCover(manga),
+  await setDoc(doc(db, "users", currentUser.uid, "series", serie.id), {
+    id: serie.id,
+    title: serie.title,
+    cover: serie.cover,
     totalVolumes: total,
     owned: [],
     addedAt: Date.now()
