@@ -1,10 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged
+  sendPasswordResetEmail, updateProfile, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, deleteDoc, updateDoc,
+  getFirestore, collection, doc, getDoc, setDoc, deleteDoc, updateDoc,
   onSnapshot, arrayUnion, arrayRemove, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -30,13 +30,14 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     $("auth-screen").hidden = true;
     $("app-screen").hidden  = false;
-    $("user-email").textContent = user.email;
+    $("user-email").textContent = user.displayName || user.email;
     watchCollection(user.uid);
   } else {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     $("app-screen").hidden  = true;
     $("auth-screen").hidden = false;
     $("collection").innerHTML = "";
+    showReset(false);
   }
 });
 
@@ -47,8 +48,70 @@ $("auth-toggle").addEventListener("click", () => {
   $("auth-switch-text").textContent = signup ? "Tu as déjà un compte ?" : "Pas encore de compte ?";
   $("auth-toggle").textContent      = signup ? "Se connecter" : "Créer un compte";
   $("password").autocomplete        = signup ? "new-password" : "current-password";
+  $("auth-forgot-wrap").hidden      = signup;
+  $("pseudo-field").hidden          = !signup;
+  $("pseudo").required              = signup;
   hideError();
 });
+
+/* Réinitialisation : vue séparée, avec son propre champ.
+   Firebase envoie le lien et héberge la page de changement — rien à stocker ici. */
+
+$("auth-forgot").addEventListener("click", () => showReset(true));
+$("reset-back").addEventListener("click", () => showReset(false));
+
+function showReset(on) {
+  $("login-view").hidden = on;
+  $("reset-view").hidden = !on;
+  hideError();
+  hideResetError();
+  if (on) {
+    $("reset-form").reset();
+    $("reset-email").focus();
+  }
+}
+
+$("reset-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hideResetError();
+
+  const email = $("reset-email").value.trim();
+  if (!email) {
+    $("reset-email").focus();
+    return showResetError("Saisis l'adresse e-mail de ton compte.");
+  }
+
+  $("reset-submit").disabled = true;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    confirmSent();
+  } catch (err) {
+    // On ne révèle pas si l'adresse a un compte : même message dans les deux cas.
+    if (err.code === "auth/user-not-found") confirmSent();
+    else showResetError(authMessage(err.code));
+  } finally {
+    $("reset-submit").disabled = false;
+  }
+});
+
+function confirmSent() {
+  showResetError("Si un compte existe pour cette adresse, un lien de réinitialisation vient d'y être envoyé. Regarde aussi dans les indésirables.");
+  $("reset-error").classList.add("is-note");
+  $("reset-form").reset();
+}
+
+const showResetError = (msg) => {
+  const el = $("reset-error");
+  el.textContent = msg;
+  el.classList.remove("is-note");
+  el.hidden = false;
+};
+
+const hideResetError = () => {
+  const el = $("reset-error");
+  el.hidden = true;
+  el.classList.remove("is-note");
+};
 
 $("auth-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -64,17 +127,52 @@ $("auth-form").addEventListener("submit", async (e) => {
   $("auth-submit").disabled = true;
   try {
     if (mode === "signup") {
-      await createUserWithEmailAndPassword(auth, email, pass);
+      await signUp(email, pass);
     } else {
       await signInWithEmailAndPassword(auth, email, pass);
     }
     $("auth-form").reset();
   } catch (err) {
-    showError(authMessage(err.code));
+    if (err.message === "pseudo-invalide") {
+      showError("Le pseudo doit faire 3 à 20 caractères, sans espace ni accent.");
+    } else if (err.message === "pseudo-pris") {
+      showError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
+    } else {
+      showError(authMessage(err.code));
+    }
   } finally {
     $("auth-submit").disabled = false;
   }
 });
+
+/* Le pseudo est réservé dans une collection dédiée : l'identifiant du document
+   est le pseudo en minuscules, donc Firestore garantit son unicité. */
+async function signUp(email, pass) {
+  const pseudo = $("pseudo").value.trim();
+  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(pseudo)) throw new Error("pseudo-invalide");
+
+  const key = pseudo.toLowerCase();
+
+  // Vérification rapide, avant de créer un compte pour rien.
+  const existant = await getDoc(doc(db, "usernames", key));
+  if (existant.exists()) throw new Error("pseudo-pris");
+
+  const { user } = await createUserWithEmailAndPassword(auth, email, pass);
+
+  try {
+    // Les règles refusent l'écriture si le document existe déjà : c'est ce qui
+    // tranche si deux personnes réservent le même pseudo en même temps.
+    await setDoc(doc(db, "usernames", key), { uid: user.uid });
+    await setDoc(doc(db, "users", user.uid), { pseudo, createdAt: Date.now() });
+    await updateProfile(user, { displayName: pseudo });
+    $("user-email").textContent = pseudo;
+  } catch {
+    // Le pseudo vient d'être pris : on annule le compte plutôt que de le laisser
+    // orphelin, et la personne peut réessayer avec un autre.
+    await user.delete();
+    throw new Error("pseudo-pris");
+  }
+}
 
 $("logout").addEventListener("click", () => signOut(auth));
 
@@ -87,13 +185,24 @@ function authMessage(code) {
     "auth/user-not-found":        "Aucun compte avec cette adresse.",
     "auth/wrong-password":        "Mot de passe incorrect.",
     "auth/too-many-requests":     "Trop de tentatives. Réessaie dans quelques minutes.",
+    "auth/missing-email":         "Saisis d'abord ton adresse e-mail.",
     "auth/operation-not-allowed": "Active la connexion par e-mail dans la console Firebase."
   };
   return messages[code] || "La connexion a échoué. Vérifie ta configuration Firebase.";
 }
 
-const showError = (msg) => { $("auth-error").textContent = msg; $("auth-error").hidden = false; };
-const hideError = () => { $("auth-error").hidden = true; };
+const showError = (msg) => {
+  const el = $("auth-error");
+  el.textContent = msg;
+  el.classList.remove("is-note");
+  el.hidden = false;
+};
+
+const hideError = () => {
+  const el = $("auth-error");
+  el.hidden = true;
+  el.classList.remove("is-note");
+};
 
 /* ══════════════════ Recherche de séries ══════════════════ */
 

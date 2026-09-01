@@ -15,24 +15,57 @@
   <div id="auth-screen" class="auth-screen" hidden>
     <div class="auth-box">
       <h1 class="wordmark">Rayon</h1>
-      <p class="auth-intro">Coche les tomes que tu possèdes. Les cases vides sont ceux qu'il te reste à trouver.</p>
+      <div id="login-view">
+        <p class="auth-intro">Coche les tomes que tu possèdes. Les cases vides sont ceux qu'il te reste à trouver.</p>
 
-      <form id="auth-form" class="auth-form" novalidate>
-        <label for="email">Adresse e-mail</label>
-        <input type="email" id="email" autocomplete="email" required>
+        <form id="auth-form" class="auth-form" novalidate>
+          <div class="field">
+            <label for="email">Adresse e-mail</label>
+            <input type="email" id="email" autocomplete="email" required>
+          </div>
 
-        <label for="password">Mot de passe</label>
-        <input type="password" id="password" autocomplete="current-password" minlength="6" required>
+          <div class="field" id="pseudo-field" hidden>
+            <label for="pseudo">Pseudo</label>
+            <input type="text" id="pseudo" autocomplete="username" minlength="3" maxlength="20">
+            <p class="field-hint">3 à 20 caractères : lettres, chiffres, tiret et tiret bas.</p>
+          </div>
 
-        <p id="auth-error" class="form-error" role="alert" hidden></p>
+          <div class="field">
+            <label for="password">Mot de passe</label>
+            <input type="password" id="password" autocomplete="current-password" minlength="6" required>
+          </div>
 
-        <button type="submit" id="auth-submit" class="btn-primary">Se connecter</button>
-      </form>
+          <p id="auth-error" class="form-error" role="alert" hidden></p>
 
-      <p class="auth-switch">
-        <span id="auth-switch-text">Pas encore de compte ?</span>
-        <button type="button" id="auth-toggle" class="btn-link">Créer un compte</button>
-      </p>
+          <button type="submit" id="auth-submit" class="btn-primary">Se connecter</button>
+        </form>
+
+        <p class="auth-forgot" id="auth-forgot-wrap">
+          <button type="button" id="auth-forgot" class="btn-link">Mot de passe oublié ?</button>
+        </p>
+
+        <p class="auth-switch">
+          <span id="auth-switch-text">Pas encore de compte ?</span>
+          <button type="button" id="auth-toggle" class="btn-link">Créer un compte</button>
+        </p>
+      </div>
+
+      <div id="reset-view" hidden>
+        <p class="auth-intro">Indique l'adresse de ton compte. Tu recevras un lien pour choisir un nouveau mot de passe.</p>
+
+        <form id="reset-form" class="auth-form" novalidate>
+          <label for="reset-email">Adresse e-mail du compte</label>
+          <input type="email" id="reset-email" autocomplete="off" required>
+
+          <p id="reset-error" class="form-error" role="alert" hidden></p>
+
+          <button type="submit" id="reset-submit" class="btn-primary">Envoyer le lien</button>
+        </form>
+
+        <p class="auth-forgot">
+          <button type="button" id="reset-back" class="btn-link">Retour à la connexion</button>
+        </p>
+      </div>
     </div>
   </div>
 
