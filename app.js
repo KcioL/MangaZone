@@ -250,17 +250,24 @@ async function loadSuggestions() {
   grid.innerHTML = `<p class="loading">Chargement des suggestions…</p>`;
 
   try {
-    const url = `${API}/manga?limit=18&order[followedCount]=desc&includes[]=cover_art`
-              + `&contentRating[]=safe&contentRating[]=suggestive&hasAvailableChapters=true`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(res.status);
+    const base = `${API}/manga?limit=18&includes[]=cover_art`
+               + `&contentRating[]=safe&contentRating[]=suggestive`;
+
+    // Le tri par popularité est le plus utile, mais c'est aussi le paramètre le
+    // plus susceptible d'être rejeté : on retente sans lui plutôt que d'échouer.
+    let res = await fetch(`${base}&order[followedCount]=desc`);
+    if (!res.ok) res = await fetch(base);
+    if (!res.ok) throw new Error(`MangaDex a répondu ${res.status}`);
+
     const { data } = await res.json();
+    if (!data?.length) throw new Error("aucune série renvoyée");
 
     grid.innerHTML = "";
     data.forEach((manga) => grid.appendChild(suggestionCard(manga)));
-  } catch {
+  } catch (err) {
     suggestionsLoaded = false;
-    grid.innerHTML = `<p class="loading">Suggestions indisponibles. Utilise la recherche ci-dessus.</p>`;
+    console.error("Suggestions MangaDex :", err);
+    grid.innerHTML = `<p class="loading">Suggestions indisponibles pour le moment (${escapeHtml(err.message)}). La recherche ci-dessus fonctionne normalement.</p>`;
   }
 }
 
@@ -274,7 +281,7 @@ function suggestionCard(manga) {
   card.className = "poster";
   card.innerHTML = `
     <span class="poster-img">
-      <img src="${thumb}" alt="" loading="lazy">
+      <img src="${thumb}" alt="" loading="lazy" referrerpolicy="no-referrer">
     </span>
     <span class="poster-name">${escapeHtml(title)}</span>
     <span class="poster-meta"></span>`;
@@ -343,7 +350,7 @@ function resultRow(manga) {
   const row = document.createElement("div");
   row.className = "result";
   row.innerHTML = `
-    <img src="${thumb}" alt="" loading="lazy">
+    <img src="${thumb}" alt="" loading="lazy" referrerpolicy="no-referrer">
     <div class="result-info">
       <span class="result-title">${escapeHtml(title)}</span>
       <span class="result-year">${manga.attributes.year || ""}</span>
@@ -442,7 +449,7 @@ function renderCollection() {
     card.className = "poster";
     card.innerHTML = `
       <span class="poster-img">
-        <img src="${COVER}/${series.id}/${cover.file}.256.jpg" alt="" loading="lazy">
+        <img src="${COVER}/${series.id}/${cover.file}.256.jpg" alt="" loading="lazy" referrerpolicy="no-referrer">
         <span class="poster-badge">${series.owned.length} / ${series.volumes.length}</span>
         ${complete ? `<span class="poster-check">Complète</span>` : ""}
       </span>
@@ -517,7 +524,7 @@ function renderDetail() {
       ? `Tome ${vol.n} — possédé. Cliquer pour retirer.`
       : `Tome ${vol.n} — manquant. Cliquer pour ajouter.`;
     btn.innerHTML = `
-      <img src="${COVER}/${series.id}/${vol.file}.256.jpg" alt="Tome ${vol.n}" loading="lazy">
+      <img src="${COVER}/${series.id}/${vol.file}.256.jpg" alt="Tome ${vol.n}" loading="lazy" referrerpolicy="no-referrer">
       <span class="vol-num">${vol.n}</span>`;
     btn.addEventListener("click", () => toggleVolume(series.id, vol.n, has));
     grid.appendChild(btn);

@@ -322,6 +322,7 @@ button, input { font: inherit; color: inherit; }
 }
 
 .poster-img {
+  display: block;          /* sans ça, un span reste inline et aspect-ratio est ignoré */
   position: relative;
   aspect-ratio: 2 / 3;
   border-radius: 2px;
