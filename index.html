@@ -51,8 +51,10 @@
         <p class="auth-intro">Indique l'adresse de ton compte. Tu recevras un lien pour choisir un nouveau mot de passe.</p>
 
         <form id="reset-form" class="auth-form" novalidate>
-          <label for="reset-email">Adresse e-mail du compte</label>
-          <input type="email" id="reset-email" autocomplete="off" required>
+          <div class="field">
+            <label for="reset-email">Adresse e-mail du compte</label>
+            <input type="email" id="reset-email" autocomplete="off" required>
+          </div>
 
           <p id="reset-error" class="form-error" role="alert" hidden></p>
 
@@ -70,6 +72,12 @@
   <div id="app-screen" hidden>
     <header class="topbar">
       <h1 class="wordmark wordmark-sm">Rayon</h1>
+
+      <nav class="tabs" aria-label="Sections">
+        <button type="button" id="tab-discover"   class="tab is-active" aria-current="page">Découvrir</button>
+        <button type="button" id="tab-collection" class="tab">Collection</button>
+      </nav>
+
       <div class="topbar-right">
         <span id="user-email" class="user-email"></span>
         <button type="button" id="logout" class="btn-link">Se déconnecter</button>
@@ -78,35 +86,93 @@
 
     <main class="wrap">
 
-      <p class="app-intro">
-        Cherche une série pour l'ajouter à ton rayon, puis clique sur les tomes que tu possèdes.
-        Ceux qui restent en case vide sont ceux qu'il te manque pour compléter la collection.
-      </p>
+      <!-- ── Découvrir ── -->
+      <section id="view-discover">
+        <p class="app-intro">
+          Cherche une série pour l'ajouter à ton rayon, puis coche les tomes que tu possèdes.
+          Ceux qui restent en case vide sont ceux qu'il te manque pour compléter la collection.
+        </p>
 
-      <section class="search">
         <form id="search-form" class="search-form" role="search">
           <label for="search-input" class="visually-hidden">Chercher une série</label>
-          <input type="search" id="search-input" placeholder="Chercher une série à ajouter…" autocomplete="off">
+          <input type="search" id="search-input" placeholder="Chercher une série par son titre…" autocomplete="off">
           <button type="submit" class="btn-primary">Chercher</button>
         </form>
+
         <div id="search-results" class="search-results" hidden></div>
+
+        <h2 class="section-title" id="suggest-title">Les séries les plus suivies</h2>
+        <p class="section-note">Clique sur une couverture pour l'ajouter directement à ton rayon.</p>
+        <div id="suggestions" class="poster-grid"></div>
       </section>
 
-      <section id="stats" class="stats" hidden>
-        <p><strong id="stat-owned">0</strong> tomes en rayon</p>
-        <p><strong id="stat-missing">0</strong> tomes manquants</p>
-        <p><strong id="stat-series">0</strong> séries suivies</p>
+      <!-- ── Collection : les séries ── -->
+      <section id="view-collection" hidden>
+        <div id="stats" class="stats" hidden>
+          <p><strong id="stat-owned">0</strong> tomes en rayon</p>
+          <p><strong id="stat-missing">0</strong> tomes manquants</p>
+          <p><strong id="stat-series">0</strong> séries suivies</p>
+        </div>
+
+        <div id="series-list" class="poster-grid"></div>
+
+        <p id="empty-state" class="empty-state" hidden>
+          Ton rayon est vide. Passe par l'onglet Découvrir pour ajouter une première série.
+        </p>
+
+        <p id="loading" class="loading" hidden>Chargement…</p>
+
+        <div class="danger">
+          <button type="button" id="delete-account" class="btn-danger">Supprimer mon compte</button>
+        </div>
       </section>
 
-      <div id="collection" class="collection"></div>
+      <!-- ── Détail d'une série ── -->
+      <section id="view-series" hidden>
+        <button type="button" id="back-to-collection" class="btn-link back-link">Retour à la collection</button>
 
-      <p id="empty-state" class="empty-state" hidden>
-        Ton rayon est vide. Cherche une série ci-dessus pour commencer.
-      </p>
+        <h2 class="series-title" id="detail-title"></h2>
+        <p class="series-count" id="detail-count"></p>
+        <div class="progress"><span id="detail-bar"></span></div>
 
-      <p id="loading" class="loading" hidden>Chargement…</p>
+        <div class="filters" role="group" aria-label="Filtrer les tomes">
+          <button type="button" class="filter is-active" data-filter="all">Tous</button>
+          <button type="button" class="filter" data-filter="owned">Possédés</button>
+          <button type="button" class="filter" data-filter="missing">Manquants</button>
+        </div>
+
+        <div id="detail-volumes" class="volumes"></div>
+        <p id="detail-nothing" class="empty-state" hidden></p>
+
+        <div class="danger">
+          <button type="button" id="detail-remove" class="btn-danger">Retirer cette série du rayon</button>
+        </div>
+      </section>
 
     </main>
+  </div>
+
+  <!-- ══ Suppression du compte ══ -->
+  <div id="delete-modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-heading">
+      <h2 id="delete-heading" class="modal-title">Supprimer définitivement le compte</h2>
+      <p class="modal-text">
+        Ton rayon, ton pseudo et ton compte seront effacés. Rien n'est conservé et
+        l'opération ne peut pas être annulée.
+      </p>
+
+      <div class="field">
+        <label for="delete-pass">Saisis ton mot de passe pour confirmer</label>
+        <input type="password" id="delete-pass" autocomplete="current-password">
+      </div>
+
+      <p id="delete-error" class="form-error" role="alert" hidden></p>
+
+      <div class="modal-actions">
+        <button type="button" id="delete-cancel" class="btn-link">Annuler</button>
+        <button type="button" id="delete-confirm" class="btn-danger">Tout supprimer</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

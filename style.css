@@ -13,15 +13,12 @@
 }
 
 /* Une classe comme .field { display: flex } écrase la règle par défaut du
-   navigateur pour [hidden]. Sans cette ligne, les champs masqués restent visibles. */
+   navigateur pour [hidden]. Sans cette ligne, les éléments masqués restent visibles. */
 [hidden] { display: none !important; }
 
 * { box-sizing: border-box; }
 
-html, body {
-  margin: 0;
-  padding: 0;
-}
+html, body { margin: 0; padding: 0; }
 
 body {
   background: var(--paper);
@@ -52,76 +49,13 @@ button, input { font: inherit; color: inherit; }
 .wordmark {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 2.6rem;
-  letter-spacing: 0.12em;
-  margin: 0 0 0.4em;
+  font-size: 1.3rem;
+  letter-spacing: 0.18em;
+  margin: 0;
   color: var(--ink);
 }
 
-.wordmark-sm {
-  font-size: 1.3rem;
-  margin: 0;
-  letter-spacing: 0.18em;
-}
-
-/* ── Connexion ────────────────────────────── */
-
-.auth-screen {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-}
-
-.auth-box {
-  width: 100%;
-  max-width: 380px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 40px 32px 32px;
-}
-
-.auth-intro {
-  color: var(--ink-soft);
-  font-size: 0.94rem;
-  margin: 0 0 28px;
-  max-width: 32ch;
-}
-
-.auth-form { display: flex; flex-direction: column; }
-
-.field { display: flex; flex-direction: column; }
-
-.field-hint {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin: 0 0 18px;
-  line-height: 1.4;
-}
-
-.field input { margin-bottom: 18px; }
-#pseudo { margin-bottom: 6px; }
-
-.auth-form label {
-  font-size: 0.82rem;
-  color: var(--ink-soft);
-  margin-bottom: 6px;
-}
-
-.auth-form input {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 18px;
-}
-
-.auth-form input:focus {
-  border-color: var(--ink);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(26, 34, 56, 0.1);
-}
+/* ── Boutons ──────────────────────────────── */
 
 .btn-primary {
   background: var(--ink);
@@ -146,16 +80,82 @@ button, input { font: inherit; color: inherit; }
   cursor: pointer;
 }
 
+.btn-danger {
+  background: none;
+  border: 1px solid var(--seal);
+  color: var(--seal);
+  border-radius: var(--radius);
+  padding: 9px 18px;
+  cursor: pointer;
+}
+
+.btn-danger:hover { background: var(--seal); color: var(--surface); }
+.btn-danger:disabled { opacity: 0.5; cursor: default; background: none; color: var(--seal); }
+
+/* ── Connexion ────────────────────────────── */
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 36px 32px 32px;
+}
+
+.auth-intro {
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+  margin: 0 0 24px;
+}
+
+.auth-form { display: flex; flex-direction: column; }
+
+.field { display: flex; flex-direction: column; }
+
+.field label {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+.field input {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 18px;
+}
+
+.field input:focus {
+  border-color: var(--ink);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 34, 56, 0.1);
+}
+
+#pseudo { margin-bottom: 6px; }
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 18px;
+  line-height: 1.4;
+}
+
 .form-error {
   color: var(--seal);
   font-size: 0.86rem;
   margin: 0 0 14px;
 }
 
-/* Message neutre (confirmation d'envoi), même emplacement que l'erreur */
-.form-error.is-note {
-  color: var(--ink-soft);
-}
+.form-error.is-note { color: var(--ink-soft); }
 
 .auth-forgot {
   margin: 14px 0 0;
@@ -169,16 +169,35 @@ button, input { font: inherit; color: inherit; }
   color: var(--ink-soft);
 }
 
-/* ── Barre du haut ────────────────────────── */
+/* ── Barre du haut et onglets ─────────────── */
 
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: 24px;
+  padding: 14px 24px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
+  flex-wrap: wrap;
+}
+
+.tabs { display: flex; gap: 4px; }
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 6px 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--seal);
+  font-weight: 500;
 }
 
 .topbar-right {
@@ -186,6 +205,7 @@ button, input { font: inherit; color: inherit; }
   align-items: center;
   gap: 14px;
   font-size: 0.86rem;
+  margin-left: auto;
 }
 
 .user-email { color: var(--muted); }
@@ -196,7 +216,7 @@ button, input { font: inherit; color: inherit; }
   padding: 32px 24px 80px;
 }
 
-/* ── Recherche ────────────────────────────── */
+/* ── Découvrir ────────────────────────────── */
 
 .app-intro {
   color: var(--ink-soft);
@@ -205,10 +225,7 @@ button, input { font: inherit; color: inherit; }
   margin: 0 0 28px;
 }
 
-.search-form {
-  display: flex;
-  gap: 10px;
-}
+.search-form { display: flex; gap: 10px; }
 
 .search-form input {
   flex: 1;
@@ -218,10 +235,7 @@ button, input { font: inherit; color: inherit; }
   padding: 11px 14px;
 }
 
-.search-form input:focus {
-  border-color: var(--ink);
-  outline: none;
-}
+.search-form input:focus { border-color: var(--ink); outline: none; }
 
 .search-results {
   margin-top: 16px;
@@ -237,6 +251,7 @@ button, input { font: inherit; color: inherit; }
   gap: 14px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--line);
+  margin: 0;
 }
 
 .result:last-child { border-bottom: none; }
@@ -260,10 +275,7 @@ button, input { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 
-.result-year {
-  font-size: 0.82rem;
-  color: var(--muted);
-}
+.result-year { font-size: 0.82rem; color: var(--muted); }
 
 .result button {
   background: none;
@@ -278,13 +290,101 @@ button, input { font: inherit; color: inherit; }
 .result button:hover { background: var(--ink); color: var(--surface); }
 .result button:disabled { border-color: var(--line); color: var(--muted); cursor: default; background: none; }
 
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 48px 0 4px;
+}
+
+.section-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0 0 20px;
+}
+
+/* ── Grille d'affiches (suggestions + collection) ── */
+
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 20px 16px;
+}
+
+.poster {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.poster-img {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.poster-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.poster:hover .poster-img { box-shadow: 0 0 0 2px var(--ink); }
+
+.poster-name {
+  display: block;
+  font-size: 0.86rem;
+  line-height: 1.3;
+  margin-top: 8px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.poster-meta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.poster-badge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  padding: 4px 8px;
+  font-size: 0.76rem;
+  color: #fff;
+  background: rgba(26, 34, 56, 0.85);
+}
+
+.poster-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  color: #fff;
+  background: var(--seal);
+  border-radius: 2px;
+}
+
 /* ── Chiffres ─────────────────────────────── */
 
 .stats {
   display: flex;
   gap: 32px;
   flex-wrap: wrap;
-  margin: 36px 0 8px;
+  margin: 0 0 28px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
   color: var(--ink-soft);
@@ -300,56 +400,47 @@ button, input { font: inherit; color: inherit; }
   margin-right: 6px;
 }
 
-/* ── Séries ───────────────────────────────── */
+/* ── Détail d'une série ───────────────────── */
 
-.series { margin-top: 44px; }
-
-.series-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 6px;
-}
+.back-link { margin-bottom: 24px; display: inline-block; }
 
 .series-title {
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   font-weight: 500;
-  margin: 0;
+  margin: 0 0 4px;
 }
 
-.series-count {
-  font-size: 0.86rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.series-remove {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.82rem;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.series-remove:hover { color: var(--seal); }
+.series-count { color: var(--muted); font-size: 0.9rem; margin: 0; }
 
 .progress {
   height: 3px;
   background: var(--line);
   border-radius: 2px;
-  margin: 10px 0 20px;
+  margin: 14px 0 24px;
   overflow: hidden;
 }
 
-.progress span {
-  display: block;
-  height: 100%;
+.progress span { display: block; height: 100%; background: var(--ink); }
+
+.filters { display: flex; gap: 8px; margin-bottom: 22px; }
+
+.filter {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.filter:hover { border-color: var(--ink-soft); }
+
+.filter.is-active {
   background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
 }
 
 .volumes {
@@ -358,7 +449,6 @@ button, input { font: inherit; color: inherit; }
   gap: 14px;
 }
 
-/* Un tome = un bouton bascule */
 .vol {
   position: relative;
   aspect-ratio: 2 / 3;
@@ -378,7 +468,7 @@ button, input { font: inherit; color: inherit; }
   display: block;
 }
 
-/* Tome manquant : emplacement vide sur l'étagère */
+/* Tome manquant : un emplacement vide sur l'étagère */
 .vol-missing {
   border: 1px dashed var(--line);
   background: rgba(255, 255, 255, 0.35);
@@ -402,7 +492,7 @@ button, input { font: inherit; color: inherit; }
 
 .vol-missing:hover { border-color: var(--ink-soft); border-style: solid; }
 
-/* Tome possédé : couverture pleine + cachet */
+/* Tome possédé : couverture pleine et cachet */
 .vol-owned::after {
   content: "有";
   position: absolute;
@@ -430,10 +520,58 @@ button, input { font: inherit; color: inherit; }
   border-radius: 0 2px 0 2px;
 }
 
+/* ── Zone sensible ────────────────────────── */
+
+.danger {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+/* ── Fenêtre de confirmation ──────────────── */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 34, 56, 0.55);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+
+.modal-text {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  margin: 0 0 22px;
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
 /* ── Divers ───────────────────────────────── */
 
 .empty-state, .loading {
-  margin-top: 56px;
+  margin-top: 48px;
   color: var(--muted);
   text-align: center;
 }
@@ -448,12 +586,16 @@ button, input { font: inherit; color: inherit; }
   padding: 11px 20px;
   border-radius: var(--radius);
   font-size: 0.9rem;
-  z-index: 10;
+  z-index: 30;
+  max-width: 90vw;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 620px) {
+  .topbar { gap: 12px; padding: 12px 16px; }
+  .topbar-right { width: 100%; margin-left: 0; justify-content: space-between; }
   .wrap { padding: 24px 16px 60px; }
   .search-form { flex-direction: column; }
+  .poster-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 16px 12px; }
   .volumes { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; }
   .stats { gap: 20px; }
 }

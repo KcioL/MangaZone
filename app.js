@@ -1,10 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  sendPasswordResetEmail, updateProfile, signOut, onAuthStateChanged
+  sendPasswordResetEmail, updateProfile, signOut, onAuthStateChanged,
+  EmailAuthProvider, reauthenticateWithCredential, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, setDoc, deleteDoc, updateDoc,
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc,
   onSnapshot, arrayUnion, arrayRemove, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -18,27 +19,44 @@ const COVER = "https://uploads.mangadex.org/covers";
 
 const $ = (id) => document.getElementById(id);
 
-let currentUser  = null;
-let unsubscribe  = null;
-let mode         = "login";   // "login" | "signup"
+let currentUser     = null;
+let unsubscribe     = null;
+let mode            = "login";      // "login" | "signup"
 let collectionCache = [];
+let openSeriesId    = null;         // série affichée en vue détail
+let volumeFilter    = "all";        // "all" | "owned" | "missing"
+let suggestionsLoaded = false;
 
 /* ══════════════════ Authentification ══════════════════ */
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   currentUser = user;
-  if (user) {
-    $("auth-screen").hidden = true;
-    $("app-screen").hidden  = false;
-    $("user-email").textContent = user.displayName || user.email;
-    watchCollection(user.uid);
-  } else {
+
+  if (!user) {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    collectionCache = [];
+    openSeriesId = null;
     $("app-screen").hidden  = true;
     $("auth-screen").hidden = false;
-    $("collection").innerHTML = "";
+    $("series-list").innerHTML = "";
     showReset(false);
+    return;
   }
+
+  $("auth-screen").hidden = true;
+  $("app-screen").hidden  = false;
+  $("user-email").textContent = user.displayName || user.email;
+
+  watchCollection(user.uid);
+  loadSuggestions();
+
+  // Le pseudo enregistré dans Firestore fait foi si displayName n'a pas été posé.
+  try {
+    const profil = await getDoc(doc(db, "users", user.uid));
+    if (profil.exists() && profil.data().pseudo) {
+      $("user-email").textContent = profil.data().pseudo;
+    }
+  } catch { /* le profil n'est pas indispensable à l'affichage */ }
 });
 
 $("auth-toggle").addEventListener("click", () => {
@@ -54,8 +72,98 @@ $("auth-toggle").addEventListener("click", () => {
   hideError();
 });
 
-/* Réinitialisation : vue séparée, avec son propre champ.
-   Firebase envoie le lien et héberge la page de changement — rien à stocker ici. */
+$("auth-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hideError();
+
+  const email = $("email").value.trim();
+  const pass  = $("password").value;
+
+  if (!email || pass.length < 6) {
+    return showError("Il faut une adresse valide et un mot de passe d'au moins 6 caractères.");
+  }
+
+  $("auth-submit").disabled = true;
+  try {
+    if (mode === "signup") await signUp(email, pass);
+    else await signInWithEmailAndPassword(auth, email, pass);
+    $("auth-form").reset();
+  } catch (err) {
+    if (err.message === "pseudo-invalide") {
+      showError("Le pseudo doit faire 3 à 20 caractères, sans espace ni accent.");
+    } else if (err.message === "pseudo-pris") {
+      showError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
+    } else {
+      console.error("Firebase Auth :", err.code, err.message, err);
+      showError(authMessage(err.code));
+    }
+  } finally {
+    $("auth-submit").disabled = false;
+  }
+});
+
+/* Le pseudo est réservé dans une collection dédiée : l'identifiant du document
+   est le pseudo en minuscules, donc Firestore garantit son unicité. */
+async function signUp(email, pass) {
+  const pseudo = $("pseudo").value.trim();
+  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(pseudo)) throw new Error("pseudo-invalide");
+
+  const key = pseudo.toLowerCase();
+
+  const existant = await getDoc(doc(db, "usernames", key));
+  if (existant.exists()) throw new Error("pseudo-pris");
+
+  const { user } = await createUserWithEmailAndPassword(auth, email, pass);
+
+  // Le compte existe désormais : en cas d'échec ici, on le garde plutôt que de
+  // laisser la personne sans compte alors qu'elle vient de le créer.
+  try {
+    await setDoc(doc(db, "usernames", key), { uid: user.uid });
+    await setDoc(doc(db, "users", user.uid), { pseudo, createdAt: Date.now() });
+    await updateProfile(user, { displayName: pseudo });
+    $("user-email").textContent = pseudo;
+  } catch (err) {
+    console.error("Enregistrement du pseudo :", err.code, err.message, err);
+    toast("Compte créé, mais le pseudo n'a pas pu être enregistré. Vérifie les règles Firestore.");
+  }
+}
+
+$("logout").addEventListener("click", () => signOut(auth));
+
+function authMessage(code) {
+  const messages = {
+    "auth/email-already-in-use":  "Cette adresse a déjà un compte. Connecte-toi.",
+    "auth/invalid-email":         "Cette adresse e-mail n'est pas valide.",
+    "auth/weak-password":         "Le mot de passe doit faire au moins 6 caractères.",
+    "auth/invalid-credential":    "Adresse ou mot de passe incorrect — ou aucun compte pour cette adresse.",
+    "auth/user-not-found":        "Aucun compte avec cette adresse.",
+    "auth/wrong-password":        "Mot de passe incorrect.",
+    "auth/too-many-requests":     "Trop de tentatives. Réessaie dans quelques minutes.",
+    "auth/missing-email":         "Saisis d'abord ton adresse e-mail.",
+    "auth/network-request-failed": "Connexion au serveur impossible. Désactive le VPN ou le bloqueur de pub et réessaie.",
+    "auth/operation-not-allowed": "Active le fournisseur E-mail/Mot de passe dans Authentication → Sign-in method.",
+    "auth/admin-restricted-operation": "La création de compte est bloquée dans Authentication → Settings.",
+    "auth/unauthorized-domain":   "Ce domaine n'est pas autorisé. Ajoute-le dans Authentication → Settings.",
+    "auth/requires-recent-login": "Reconnecte-toi, puis recommence : cette action demande une connexion récente.",
+    "auth/invalid-api-key":       "La clé API de firebase-config.js est incorrecte."
+  };
+  return messages[code] || `Échec de l'opération. Code renvoyé par Firebase : ${code || "inconnu"}`;
+}
+
+const showError = (msg) => {
+  const el = $("auth-error");
+  el.textContent = msg;
+  el.classList.remove("is-note");
+  el.hidden = false;
+};
+
+const hideError = () => {
+  const el = $("auth-error");
+  el.hidden = true;
+  el.classList.remove("is-note");
+};
+
+/* ══════════════════ Mot de passe oublié ══════════════════ */
 
 $("auth-forgot").addEventListener("click", () => showReset(true));
 $("reset-back").addEventListener("click", () => showReset(false));
@@ -65,10 +173,7 @@ function showReset(on) {
   $("reset-view").hidden = !on;
   hideError();
   hideResetError();
-  if (on) {
-    $("reset-form").reset();
-    $("reset-email").focus();
-  }
+  if (on) { $("reset-form").reset(); $("reset-email").focus(); }
 }
 
 $("reset-form").addEventListener("submit", async (e) => {
@@ -113,106 +218,93 @@ const hideResetError = () => {
   el.classList.remove("is-note");
 };
 
-$("auth-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  hideError();
+/* ══════════════════ Navigation par onglets ══════════════════ */
 
-  const email = $("email").value.trim();
-  const pass  = $("password").value;
+$("tab-discover").addEventListener("click", () => showView("discover"));
+$("tab-collection").addEventListener("click", () => showView("collection"));
+$("back-to-collection").addEventListener("click", () => showView("collection"));
 
-  if (!email || pass.length < 6) {
-    return showError("Il faut une adresse valide et un mot de passe d'au moins 6 caractères.");
-  }
+function showView(name) {
+  $("view-discover").hidden   = name !== "discover";
+  $("view-collection").hidden = name !== "collection";
+  $("view-series").hidden     = name !== "series";
 
-  $("auth-submit").disabled = true;
+  // La vue détail reste rattachée à l'onglet Collection.
+  const surCollection = name !== "discover";
+  $("tab-discover").classList.toggle("is-active", !surCollection);
+  $("tab-collection").classList.toggle("is-active", surCollection);
+  $("tab-discover").setAttribute("aria-current", surCollection ? "false" : "page");
+  $("tab-collection").setAttribute("aria-current", surCollection ? "page" : "false");
+
+  if (name !== "series") openSeriesId = null;
+  window.scrollTo(0, 0);
+}
+
+/* ══════════════════ Suggestions ══════════════════ */
+
+async function loadSuggestions() {
+  if (suggestionsLoaded) return;
+  suggestionsLoaded = true;
+
+  const grid = $("suggestions");
+  grid.innerHTML = `<p class="loading">Chargement des suggestions…</p>`;
+
   try {
-    if (mode === "signup") {
-      await signUp(email, pass);
-    } else {
-      await signInWithEmailAndPassword(auth, email, pass);
-    }
-    $("auth-form").reset();
-  } catch (err) {
-    if (err.message === "pseudo-invalide") {
-      showError("Le pseudo doit faire 3 à 20 caractères, sans espace ni accent.");
-    } else if (err.message === "pseudo-pris") {
-      showError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
-    } else {
-      console.error("Firebase Auth :", err.code, err.message, err);
-      showError(authMessage(err.code));
-    }
-  } finally {
-    $("auth-submit").disabled = false;
-  }
-});
+    const url = `${API}/manga?limit=18&order[followedCount]=desc&includes[]=cover_art`
+              + `&contentRating[]=safe&contentRating[]=suggestive&hasAvailableChapters=true`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.status);
+    const { data } = await res.json();
 
-/* Le pseudo est réservé dans une collection dédiée : l'identifiant du document
-   est le pseudo en minuscules, donc Firestore garantit son unicité. */
-async function signUp(email, pass) {
-  const pseudo = $("pseudo").value.trim();
-  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(pseudo)) throw new Error("pseudo-invalide");
-
-  const key = pseudo.toLowerCase();
-
-  // Vérification rapide, avant de créer un compte pour rien.
-  const existant = await getDoc(doc(db, "usernames", key));
-  if (existant.exists()) throw new Error("pseudo-pris");
-
-  const { user } = await createUserWithEmailAndPassword(auth, email, pass);
-
-  // Le compte existe maintenant. Si l'enregistrement du pseudo échoue (règles
-  // Firestore non publiées, pseudo réservé entre-temps), on garde le compte :
-  // le supprimer laisserait la personne sans rien alors qu'elle est connectée.
-  try {
-    await setDoc(doc(db, "usernames", key), { uid: user.uid });
-    await setDoc(doc(db, "users", user.uid), { pseudo, createdAt: Date.now() });
-    await updateProfile(user, { displayName: pseudo });
-    $("user-email").textContent = pseudo;
-  } catch (err) {
-    console.error("Enregistrement du pseudo :", err.code, err.message, err);
-    toast("Compte créé, mais le pseudo n'a pas pu être enregistré. Vérifie les règles Firestore.");
+    grid.innerHTML = "";
+    data.forEach((manga) => grid.appendChild(suggestionCard(manga)));
+  } catch {
+    suggestionsLoaded = false;
+    grid.innerHTML = `<p class="loading">Suggestions indisponibles. Utilise la recherche ci-dessus.</p>`;
   }
 }
 
-$("logout").addEventListener("click", () => signOut(auth));
+function suggestionCard(manga) {
+  const title = pickTitle(manga.attributes);
+  const art   = manga.relationships.find((r) => r.type === "cover_art");
+  const thumb = art ? `${COVER}/${manga.id}/${art.attributes.fileName}.256.jpg` : "";
 
-function authMessage(code) {
-  const messages = {
-    "auth/email-already-in-use":  "Cette adresse a déjà un compte. Connecte-toi.",
-    "auth/invalid-email":         "Cette adresse e-mail n'est pas valide.",
-    "auth/weak-password":         "Le mot de passe doit faire au moins 6 caractères.",
-    "auth/invalid-credential":    "Adresse ou mot de passe incorrect — ou aucun compte pour cette adresse.",
-    "auth/user-not-found":        "Aucun compte avec cette adresse.",
-    "auth/wrong-password":        "Mot de passe incorrect.",
-    "auth/too-many-requests":     "Trop de tentatives. Réessaie dans quelques minutes.",
-    "auth/missing-email":         "Saisis d'abord ton adresse e-mail.",
-    "auth/network-request-failed": "Connexion au serveur impossible. Désactive le VPN ou le bloqueur de pub et réessaie.",
-    "auth/operation-not-allowed": "Active le fournisseur E-mail/Mot de passe dans Authentication → Sign-in method.",
-    "auth/admin-restricted-operation": "La création de compte est bloquée. Dans Authentication → Settings → Actions utilisateur, coche « Autoriser la création de comptes ».",
-    "auth/unauthorized-domain":   "Ce domaine n'est pas autorisé. Ajoute-le dans Authentication → Settings → Domaines autorisés.",
-    "auth/password-does-not-meet-requirements": "Le mot de passe ne respecte pas la politique définie dans Firebase.",
-    "auth/invalid-api-key":       "La clé API de firebase-config.js est incorrecte.",
-    "auth/requests-from-referer-are-blocked": "Ce domaine est bloqué par les restrictions de la clé API, côté Google Cloud."
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "poster";
+  card.innerHTML = `
+    <span class="poster-img">
+      <img src="${thumb}" alt="" loading="lazy">
+    </span>
+    <span class="poster-name">${escapeHtml(title)}</span>
+    <span class="poster-meta"></span>`;
+
+  const meta = card.querySelector(".poster-meta");
+  const marquerSuivie = () => {
+    if (collectionCache.some((s) => s.id === manga.id)) {
+      card.querySelector(".poster-img").insertAdjacentHTML(
+        "beforeend", `<span class="poster-check">Suivie</span>`);
+      meta.textContent = "Déjà dans ton rayon";
+    }
   };
-  // Si le code n'est pas connu, on l'affiche tel quel : c'est ce qui permet
-  // de diagnostiquer au lieu de rester bloqué sur un message générique.
-  return messages[code] || `Échec de l'opération. Code renvoyé par Firebase : ${code || "inconnu"}`;
+  marquerSuivie();
+
+  card.addEventListener("click", async () => {
+    if (collectionCache.some((s) => s.id === manga.id)) return showView("collection");
+    meta.textContent = "Ajout…";
+    try {
+      await addSeries(manga, title);
+      toast(`${title} est dans ton rayon.`);
+      marquerSuivie();
+    } catch {
+      meta.textContent = "Aucun tome référencé";
+    }
+  });
+
+  return card;
 }
 
-const showError = (msg) => {
-  const el = $("auth-error");
-  el.textContent = msg;
-  el.classList.remove("is-note");
-  el.hidden = false;
-};
-
-const hideError = () => {
-  const el = $("auth-error");
-  el.hidden = true;
-  el.classList.remove("is-note");
-};
-
-/* ══════════════════ Recherche de séries ══════════════════ */
+/* ══════════════════ Recherche ══════════════════ */
 
 $("search-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -246,7 +338,6 @@ function resultRow(manga) {
   const title = pickTitle(manga.attributes);
   const art   = manga.relationships.find((r) => r.type === "cover_art");
   const thumb = art ? `${COVER}/${manga.id}/${art.attributes.fileName}.256.jpg` : "";
-  const year  = manga.attributes.year || "";
   const owned = collectionCache.some((s) => s.id === manga.id);
 
   const row = document.createElement("div");
@@ -255,7 +346,7 @@ function resultRow(manga) {
     <img src="${thumb}" alt="" loading="lazy">
     <div class="result-info">
       <span class="result-title">${escapeHtml(title)}</span>
-      <span class="result-year">${year}</span>
+      <span class="result-year">${manga.attributes.year || ""}</span>
     </div>
     <button type="button" ${owned ? "disabled" : ""}>${owned ? "Déjà suivie" : "Ajouter"}</button>`;
 
@@ -270,7 +361,7 @@ function resultRow(manga) {
     } catch {
       btn.disabled = false;
       btn.textContent = "Réessayer";
-      toast("L'ajout a échoué.");
+      toast("Aucun tome référencé pour cette série.");
     }
   });
   return row;
@@ -299,23 +390,17 @@ async function addSeries(manga, title) {
     if (!vol) return;
     const score = rank[cover.attributes.locale] || 1;
     const kept  = best.get(vol);
-    if (!kept || score > kept.score) {
-      best.set(vol, { score, file: cover.attributes.fileName });
-    }
+    if (!kept || score > kept.score) best.set(vol, { score, file: cover.attributes.fileName });
   });
 
   const volumes = [...best.entries()]
     .map(([n, v]) => ({ n, file: v.file }))
     .sort((a, b) => parseFloat(a.n) - parseFloat(b.n));
 
-  if (!volumes.length) throw new Error("no volumes");
+  if (!volumes.length) throw new Error("aucun tome");
 
   await setDoc(doc(db, "users", currentUser.uid, "series", manga.id), {
-    id: manga.id,
-    title,
-    volumes,
-    owned: [],
-    addedAt: Date.now()
+    id: manga.id, title, volumes, owned: [], addedAt: Date.now()
   });
 }
 
@@ -329,14 +414,16 @@ function watchCollection(uid) {
     $("loading").hidden = true;
     collectionCache = snap.docs.map((d) => d.data());
     renderCollection();
-  }, () => {
+    if (openSeriesId) renderDetail();
+  }, (err) => {
+    console.error("Firestore :", err.code, err.message);
     $("loading").textContent = "Impossible de lire ta collection. Vérifie les règles Firestore.";
   });
 }
 
 function renderCollection() {
-  const box = $("collection");
-  box.innerHTML = "";
+  const grid = $("series-list");
+  grid.innerHTML = "";
 
   $("empty-state").hidden = collectionCache.length > 0;
   $("stats").hidden       = collectionCache.length === 0;
@@ -346,7 +433,24 @@ function renderCollection() {
   collectionCache.forEach((series) => {
     owned += series.owned.length;
     total += series.volumes.length;
-    box.appendChild(seriesBlock(series));
+
+    const complete = series.owned.length === series.volumes.length;
+    const cover    = series.volumes[0];
+
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "poster";
+    card.innerHTML = `
+      <span class="poster-img">
+        <img src="${COVER}/${series.id}/${cover.file}.256.jpg" alt="" loading="lazy">
+        <span class="poster-badge">${series.owned.length} / ${series.volumes.length}</span>
+        ${complete ? `<span class="poster-check">Complète</span>` : ""}
+      </span>
+      <span class="poster-name">${escapeHtml(series.title)}</span>
+      <span class="poster-meta">${complete ? "Rien ne manque" : `${series.volumes.length - series.owned.length} tomes à trouver`}</span>`;
+
+    card.addEventListener("click", () => openSeries(series.id));
+    grid.appendChild(card);
   });
 
   $("stat-owned").textContent   = owned;
@@ -354,26 +458,56 @@ function renderCollection() {
   $("stat-series").textContent  = collectionCache.length;
 }
 
-function seriesBlock(series) {
-  const section = document.createElement("section");
-  section.className = "series";
+/* ══════════════════ Détail d'une série ══════════════════ */
 
+function openSeries(id) {
+  openSeriesId = id;
+  volumeFilter = "all";
+  document.querySelectorAll(".filter").forEach((b) =>
+    b.classList.toggle("is-active", b.dataset.filter === "all"));
+  renderDetail();
+  showView("series");
+}
+
+document.querySelectorAll(".filter").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    volumeFilter = btn.dataset.filter;
+    document.querySelectorAll(".filter").forEach((b) => b.classList.remove("is-active"));
+    btn.classList.add("is-active");
+    renderDetail();
+  });
+});
+
+function renderDetail() {
+  const series = collectionCache.find((s) => s.id === openSeriesId);
+  if (!series) return showView("collection");   // la série vient d'être retirée
+
+  const manquants = series.volumes.length - series.owned.length;
   const pct = series.volumes.length
-    ? Math.round((series.owned.length / series.volumes.length) * 100)
-    : 0;
+    ? Math.round((series.owned.length / series.volumes.length) * 100) : 0;
 
-  section.innerHTML = `
-    <div class="series-head">
-      <h2 class="series-title">${escapeHtml(series.title)}</h2>
-      <span class="series-count">${series.owned.length} / ${series.volumes.length} tomes</span>
-    </div>
-    <div class="progress"><span style="width:${pct}%"></span></div>
-    <div class="volumes"></div>
-    <p style="margin-top:14px"><button type="button" class="series-remove">Retirer cette série</button></p>`;
+  $("detail-title").textContent = series.title;
+  $("detail-count").textContent = manquants === 0
+    ? `Collection complète : ${series.volumes.length} tomes`
+    : `${series.owned.length} tomes sur ${series.volumes.length} — il t'en manque ${manquants}`;
+  $("detail-bar").style.width = `${pct}%`;
 
-  const grid = section.querySelector(".volumes");
+  const grid = $("detail-volumes");
+  grid.innerHTML = "";
 
-  series.volumes.forEach((vol) => {
+  const visibles = series.volumes.filter((v) => {
+    const has = series.owned.includes(v.n);
+    return volumeFilter === "all"
+        || (volumeFilter === "owned"   && has)
+        || (volumeFilter === "missing" && !has);
+  });
+
+  $("detail-nothing").hidden = visibles.length > 0;
+  $("detail-nothing").textContent = volumeFilter === "owned"
+    ? "Tu ne possèdes encore aucun tome de cette série."
+    : "Il ne te manque aucun tome.";
+
+  visibles.forEach((vol) => {
     const has = series.owned.includes(vol.n);
     const btn = document.createElement("button");
     btn.type = "button";
@@ -385,24 +519,83 @@ function seriesBlock(series) {
     btn.innerHTML = `
       <img src="${COVER}/${series.id}/${vol.file}.256.jpg" alt="Tome ${vol.n}" loading="lazy">
       <span class="vol-num">${vol.n}</span>`;
-
     btn.addEventListener("click", () => toggleVolume(series.id, vol.n, has));
     grid.appendChild(btn);
   });
-
-  section.querySelector(".series-remove").addEventListener("click", async () => {
-    if (!confirm(`Retirer « ${series.title} » de ton rayon ?`)) return;
-    await deleteDoc(doc(db, "users", currentUser.uid, "series", series.id));
-    toast("Série retirée.");
-  });
-
-  return section;
 }
 
 async function toggleVolume(seriesId, n, has) {
   const ref = doc(db, "users", currentUser.uid, "series", seriesId);
   await updateDoc(ref, { owned: has ? arrayRemove(n) : arrayUnion(n) });
 }
+
+$("detail-remove").addEventListener("click", async () => {
+  const series = collectionCache.find((s) => s.id === openSeriesId);
+  if (!series) return;
+  if (!confirm(`Retirer « ${series.title} » de ton rayon ?`)) return;
+  await deleteDoc(doc(db, "users", currentUser.uid, "series", series.id));
+  showView("collection");
+  toast("Série retirée.");
+});
+
+/* ══════════════════ Suppression du compte ══════════════════ */
+
+$("delete-account").addEventListener("click", () => {
+  $("delete-modal").hidden = false;
+  $("delete-error").hidden = true;
+  $("delete-pass").value = "";
+  $("delete-pass").focus();
+});
+
+$("delete-cancel").addEventListener("click", () => { $("delete-modal").hidden = true; });
+
+$("delete-confirm").addEventListener("click", async () => {
+  const pass = $("delete-pass").value;
+  $("delete-error").hidden = true;
+
+  if (!pass) {
+    $("delete-error").textContent = "Saisis ton mot de passe pour confirmer.";
+    $("delete-error").hidden = false;
+    return;
+  }
+
+  $("delete-confirm").disabled = true;
+  $("delete-confirm").textContent = "Suppression…";
+
+  try {
+    const user = auth.currentUser;
+
+    // Firebase exige une connexion récente avant de supprimer un compte.
+    await reauthenticateWithCredential(
+      user, EmailAuthProvider.credential(user.email, pass));
+
+    // Les données d'abord : une fois le compte supprimé, plus aucune règle
+    // Firestore ne nous laisserait y toucher.
+    const series = await getDocs(collection(db, "users", user.uid, "series"));
+    await Promise.all(series.docs.map((d) => deleteDoc(d.ref)));
+
+    const profil = await getDoc(doc(db, "users", user.uid));
+    if (profil.exists() && profil.data().pseudo) {
+      await deleteDoc(doc(db, "usernames", profil.data().pseudo.toLowerCase()));
+    }
+    await deleteDoc(doc(db, "users", user.uid));
+
+    await deleteUser(user);   // déclenche onAuthStateChanged et renvoie à l'accueil
+
+    $("delete-modal").hidden = true;
+    toast("Compte et données supprimés.");
+  } catch (err) {
+    console.error("Suppression :", err.code, err.message, err);
+    $("delete-error").textContent =
+      err.code === "auth/invalid-credential" || err.code === "auth/wrong-password"
+        ? "Mot de passe incorrect."
+        : authMessage(err.code);
+    $("delete-error").hidden = false;
+  } finally {
+    $("delete-confirm").disabled = false;
+    $("delete-confirm").textContent = "Tout supprimer";
+  }
+});
 
 /* ══════════════════ Utilitaires ══════════════════ */
 
@@ -412,7 +605,7 @@ function toast(msg) {
   el.textContent = msg;
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.hidden = true; }, 2800);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3000);
 }
 
 function escapeHtml(str) {
