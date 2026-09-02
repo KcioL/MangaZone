@@ -59,15 +59,19 @@ button, input { font: inherit; color: inherit; }
 ::selection { background: var(--brass); color: var(--bg); }
 
 /* ── Fond animé ───────────────────────────────────────────────
-   Deux halos de couleurs opposées — laiton en haut, violet en bas —
-   dont la position suit le défilement : en descendant, le laiton plonge
-   et le violet remonte, si bien que le haut et le bas de page n'ont pas
-   la même ambiance. Par-dessus, deux motifs de planche de manga : trame
-   de points et lignes de vitesse.
+   Un large halo laiton en haut de page, dont la position et l'intensité
+   suivent le défilement, plus deux motifs de planche de manga : trame de
+   points et lignes de vitesse.
 
-   La variable --defile vaut 0 en haut de page et 1 en bas. Elle est mise
-   à jour par app.js, une fois par image au maximum.
+   --defile vaut 0 en haut de page et 1 en bas ; app.js la met à jour une
+   fois par image au maximum.
    ─────────────────────────────────────────────────────────── */
+
+@property --defile {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: true;
+}
 
 .fond {
   position: fixed;
@@ -75,27 +79,43 @@ button, input { font: inherit; color: inherit; }
   z-index: -1;
   pointer-events: none;   /* le décor ne doit intercepter aucun clic */
   overflow: hidden;
-
-  /* Les halos restent ancrés aux bords et glissent latéralement : un halo qui
-     traverserait le centre de l'écran passerait derrière le texte et ruinerait
-     le contraste. Ce qui change avec le défilement, c'est leur position le long
-     du bord et leur intensité — pas leur passage au milieu. */
-  background-image:
-    /* Laiton, bord haut : glisse vers la gauche et s'estompe */
-    radial-gradient(980px 520px at calc(56% - var(--defile, 0) * 34%) -14%,
-                    rgba(217, 169, 76, calc(0.17 - var(--defile, 0) * 0.11)),
-                    transparent 66%),
-    /* Violet, bord bas : glisse vers la droite et s'intensifie */
-    radial-gradient(900px 560px at calc(10% + var(--defile, 0) * 44%) 116%,
-                    rgba(126, 88, 196, calc(0.11 + var(--defile, 0) * 0.12)),
-                    transparent 68%),
-    /* Braise rouge, coin bas droit : recule à mesure qu'on descend */
-    radial-gradient(720px 480px at calc(100% - var(--defile, 0) * 16%)
-                                   calc(118% + var(--defile, 0) * 10%),
-                    rgba(201, 106, 122, 0.10), transparent 70%);
 }
 
-/* Trame de points : dérive lente et continue */
+/* Un seul halo, large et doux, ancré en haut de page. Il descend un peu,
+   s'élargit et s'estompe au fil du défilement : le contenu passe ainsi
+   progressivement de la lumière à l'ombre.
+
+   La variable ne pilote que `transform` et `opacity`. Placée dans le canal
+   alpha d'une couleur, elle rendrait la déclaration invalide et ferait
+   disparaître le dégradé entier. */
+/* Un seul halo, large et doux, ancré en haut de page. Il descend, s'élargit
+   et s'estompe au fil du défilement : le contenu passe progressivement de la
+   lumière à l'ombre.
+
+   La variable ne pilote que `transform` et `opacity`. Placée dans le canal
+   alpha d'une couleur, elle rendrait la déclaration invalide et ferait
+   disparaître le dégradé entier. */
+.halo {
+  position: absolute;
+  display: block;
+  width: 1800px;
+  height: 900px;
+  left: 50%;
+  top: -430px;
+  margin-left: -900px;
+  background: radial-gradient(closest-side,
+    rgba(240, 196, 104, 0.48)  0%,
+    rgba(222, 166,  72, 0.25) 34%,
+    rgba(160, 108,  52, 0.10) 60%,
+    transparent 80%);
+  opacity: calc(1 - var(--defile) * 0.5);
+  transform:
+    translateY(calc(var(--defile) * 120px))
+    scale(calc(1 + var(--defile) * 0.24));
+  will-change: transform, opacity;
+}
+
+/* Trame de points, dérive lente et continue */
 .fond::before,
 .fond::after {
   content: "";
@@ -117,7 +137,7 @@ button, input { font: inherit; color: inherit; }
     transparent 0 44px,
     rgba(255, 236, 200, 0.07) 44px 45px,
     transparent 45px 104px);
-  transform: translateX(calc(var(--defile, 0) * -320px));
+  transform: translateX(calc(var(--defile) * -340px));
   animation: respiration 9s ease-in-out infinite;
 }
 
@@ -129,9 +149,6 @@ button, input { font: inherit; color: inherit; }
   0%, 100% { opacity: 0.45; }
   50%      { opacity: 1; }
 }
-
-/* Si la personne a demandé moins de mouvement, la règle générale en bas de
-   fichier coupe les animations ; les halos restent, simplement figés. */
 
 /* ── Identité ─────────────────────────────── */
 
@@ -224,11 +241,13 @@ button, input { font: inherit; color: inherit; }
 
 .auth-hero img {
   width: 100%;
-  height: auto;
+  aspect-ratio: 1;
+  object-fit: cover;
   display: block;
-  /* Une lueur laiton sous le personnage l'ancre au fond au lieu de le laisser
-     flotter, et rattrape le contraste de sa tenue sombre sur fond sombre. */
-  filter: drop-shadow(0 24px 46px rgba(217, 169, 76, 0.2));
+  border-radius: 50%;
+  background: var(--raised);
+  border: 2px solid var(--brass);
+  box-shadow: 0 24px 46px rgba(217, 169, 76, 0.18);
 }
 
 .auth-hero-text {
@@ -909,13 +928,16 @@ button, input { font: inherit; color: inherit; }
 .empty-state p { margin: 0; }
 
 .empty-art {
-  width: 300px;
-  height: auto;
+  width: 168px;
+  height: 168px;
   display: block;
-  margin: 0 auto 20px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--raised);
+  border: 2px solid var(--line);
   /* Volontairement en retrait : le message doit primer sur le décor. */
-  opacity: 0.7;
-  filter: drop-shadow(0 18px 32px rgba(217, 169, 76, 0.15));
+  opacity: 0.75;
 }
 
 .toast {
@@ -937,16 +959,16 @@ button, input { font: inherit; color: inherit; }
   /* En dessous de cette largeur, la colonne latérale écraserait le formulaire.
      L'illustration passe au-dessus, en plus petit. */
   .auth-layout { flex-direction: column; gap: 24px; }
-  .auth-hero { width: 240px; }
+  .auth-hero { width: 200px; }
   .auth-hero-text { font-size: 1.9rem; }
   .succes-head { flex-direction: column; align-items: flex-start; gap: 20px; }
   .succes-art { width: 128px; height: 128px; }
 }
 
 @media (max-width: 640px) {
-  .auth-hero { width: 190px; }
+  .auth-hero { width: 160px; }
   .auth-hero-note { display: none; }
-  .empty-art { width: 200px; }
+  .empty-art { width: 132px; height: 132px; }
   .succes-art { display: none; }
   .succes-cartes { grid-template-columns: 1fr; }
   .topbar { gap: 14px; padding: 14px 18px; }
