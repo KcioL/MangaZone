@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   MaMangathèque — thème sombre
+   MangaZone — thème sombre
    Base encre-aubergine, accent laiton. Le laiton signale ce que
    l'on possède ; tout le reste du site reste sourd pour que les
    tomes cochés soient la seule chose qui brille.
@@ -393,6 +393,38 @@ button, input { font: inherit; color: inherit; }
   margin: 0 auto;
   padding: 36px 28px 96px;
 }
+
+/* ── Barre de navigation basse (mobile) ───── */
+
+/* Masquée par défaut : sur grand écran, les onglets du haut suffisent. */
+.barre-basse { display: none; }
+
+.onglet-bas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 0 7px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.68rem;
+}
+
+.onglet-bas svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.onglet-bas.is-active { color: var(--brass); }
+.onglet-bas.is-active svg { stroke-width: 2; }
 
 /* ── Découvrir ────────────────────────────── */
 
@@ -1069,9 +1101,32 @@ button, input { font: inherit; color: inherit; }
   .empty-art { width: 132px; height: 132px; }
   .succes-art { display: none; }
   .succes-cartes { grid-template-columns: 1fr; }
-  .topbar { gap: 14px; padding: 14px 18px; }
-  .topbar-right { width: 100%; margin-left: 0; gap: 14px; }
-  .wrap { padding: 26px 18px 64px; }
+  /* En haut, l'identité seule ; la navigation descend en bas d'écran, à portée
+     de pouce, comme dans les applications mobiles. */
+  .topbar { gap: 10px; padding: 12px 16px; }
+  .tabs { display: none; }
+  .topbar-right {
+    width: 100%;
+    margin-left: 0;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+  }
+
+  .barre-basse {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 15;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    /* Marge basse sur les iPhone, pour ne pas passer sous la barre d'accueil. */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .wrap { padding: 26px 18px calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
   .search-form { flex-direction: column; }
   .poster-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 20px 12px; }
   .volumes { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 9px; }

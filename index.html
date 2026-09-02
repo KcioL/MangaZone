@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MaMangathèque</title>
+  <title>MangaZone</title>
   <link rel="icon" type="image/png" sizes="32x32" href="Onglet-32.png">
   <link rel="icon" type="image/png" sizes="512x512" href="Onglet-512.png">
   <link rel="apple-touch-icon" href="Onglet.png">
@@ -23,7 +23,7 @@
     <div class="auth-layout">
       <div class="auth-hero" aria-hidden="true">
         <img src="avatar/homme_3.png" alt="">
-        <p class="auth-hero-text">MaMangathèque</p>
+        <p class="auth-hero-text">MangaZone</p>
         <p class="auth-hero-note">Ta collection, tome par tome.</p>
       </div>
 
@@ -93,13 +93,37 @@
     <header class="topbar">
       <div class="brand">
         <img src="avatar/homme_1.png" alt="" class="brand-mark" id="brand-avatar">
-        <h1 class="wordmark">MaMangathèque</h1>
+        <h1 class="wordmark">MangaZone</h1>
       </div>
 
       <nav class="tabs" aria-label="Sections">
-        <button type="button" id="tab-discover"   class="tab is-active" aria-current="page">Découvrir</button>
-        <button type="button" id="tab-collection" class="tab">Collection</button>
-        <button type="button" id="tab-succes" class="tab">Succès</button>
+        <button type="button" id="tab-discover" class="tab is-active" data-vue="discover" aria-current="page">
+          <svg class="tab-icone" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M15.6 8.4 13.5 13.5 8.4 15.6 10.5 10.5 Z"/>
+          </svg>
+          <span class="tab-texte">Découvrir</span>
+        </button>
+
+        <button type="button" id="tab-collection" class="tab" data-vue="collection">
+          <svg class="tab-icone" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3.5" y="5" width="4.5" height="14" rx="1"/>
+            <rect x="9.75" y="5" width="4.5" height="14" rx="1"/>
+            <path d="M17.4 5.6 20.8 6.5 17.6 18.6 14.2 17.7 Z"/>
+          </svg>
+          <span class="tab-texte">Collection</span>
+        </button>
+
+        <button type="button" id="tab-succes" class="tab" data-vue="succes">
+          <svg class="tab-icone" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 4h8v5a4 4 0 0 1-8 0Z"/>
+            <path d="M8 6H5a3 3 0 0 0 3 3"/>
+            <path d="M16 6h3a3 3 0 0 1-3 3"/>
+            <path d="M12 13v3"/>
+            <path d="M9 19h6"/>
+          </svg>
+          <span class="tab-texte">Succès</span>
+        </button>
       </nav>
 
       <div class="topbar-right">
@@ -115,7 +139,7 @@
       <!-- ── Découvrir ── -->
       <section id="view-discover">
         <p class="app-intro">
-          Cherche une série pour l'ajouter à ta mangathèque, puis coche les tomes que tu possèdes.
+          Cherche une série pour l'ajouter à ta collection, puis coche les tomes que tu possèdes.
           Ceux qui restent vides sont ceux qu'il te manque pour compléter la collection.
         </p>
 
@@ -147,7 +171,7 @@
               <input type="url" id="manual-cover" placeholder="https://…">
               <p class="field-hint">Facultatif. Clic droit sur une image du web, puis « Copier le lien de l'image ».</p>
             </div>
-            <button type="submit" class="btn-primary">Ajouter à ma mangathèque</button>
+            <button type="submit" class="btn-primary">Ajouter à ma collection</button>
           </form>
         </details>
 
@@ -169,7 +193,7 @@
 
         <div id="empty-state" class="empty-state" hidden>
           <img src="avatar/homme_3.png" alt="" class="empty-art">
-          <p>Ta mangathèque est vide.<br>Passe par l'onglet Découvrir pour ajouter une première série.</p>
+          <p>Ta collection est vide.<br>Passe par l'onglet Découvrir pour ajouter une première série.</p>
         </div>
 
         <p id="loading" class="loading" hidden>Chargement…</p>
@@ -225,6 +249,34 @@
       </section>
 
     </main>
+
+    <nav class="barre-basse" aria-label="Navigation principale">
+      <button type="button" class="onglet-bas is-active" data-vue="discover">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 L21 21"/>
+        </svg>
+        <span>Découvrir</span>
+      </button>
+
+      <button type="button" class="onglet-bas" data-vue="collection">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="4" width="5" height="16" rx="1"/>
+          <rect x="10" y="4" width="5" height="16" rx="1"/>
+          <path d="M17.4 5.2 L21.2 6.2 L18.2 19.6 L14.4 18.6 Z"/>
+        </svg>
+        <span>Collection</span>
+      </button>
+
+      <button type="button" class="onglet-bas" data-vue="succes">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 4 h10 v5 a5 5 0 0 1 -10 0 Z"/>
+          <path d="M7 5 H4 v2 a3 3 0 0 0 3 3"/>
+          <path d="M17 5 h3 v2 a3 3 0 0 1 -3 3"/>
+          <path d="M12 14 v3"/><path d="M8.5 20 h7"/><path d="M10 17 h4 v3 h-4 Z"/>
+        </svg>
+        <span>Succès</span>
+      </button>
+    </nav>
   </div>
 
   <!-- ══ Changement d'avatar ══ -->
@@ -243,7 +295,7 @@
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="delete-heading">
       <h2 id="delete-heading" class="modal-title">Supprimer définitivement le compte</h2>
       <p class="modal-text">
-        Ta mangathèque, ton pseudo et ton compte seront effacés. Rien n'est conservé
+        Ta collection, ton pseudo et ton compte seront effacés. Rien n'est conservé
         et l'opération ne peut pas être annulée.
       </p>
 

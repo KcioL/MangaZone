@@ -579,9 +579,11 @@ function renderSucces() {
 
 /* ══════════════════ Navigation par onglets ══════════════════ */
 
-$("tab-discover").addEventListener("click", () => showView("discover"));
-$("tab-collection").addEventListener("click", () => showView("collection"));
-$("tab-succes").addEventListener("click", () => showView("succes"));
+/* Les onglets du haut et la barre du bas partagent le même attribut data-vue :
+   un seul gestionnaire suffit, et rien à rebrancher si une barre change. */
+document.querySelectorAll("[data-vue]").forEach((btn) => {
+  btn.addEventListener("click", () => showView(btn.dataset.vue));
+});
 $("back-to-collection").addEventListener("click", () => showView("collection"));
 
 function showView(name) {
@@ -595,11 +597,11 @@ function showView(name) {
                : name === "succes"   ? "succes"
                : "collection";
 
-  [["tab-discover", "discover"], ["tab-collection", "collection"], ["tab-succes", "succes"]]
-    .forEach(([id, cle]) => {
-      $(id).classList.toggle("is-active", cle === onglet);
-      $(id).setAttribute("aria-current", cle === onglet ? "page" : "false");
-    });
+  document.querySelectorAll("[data-vue]").forEach((btn) => {
+    const actif = btn.dataset.vue === onglet;
+    btn.classList.toggle("is-active", actif);
+    btn.setAttribute("aria-current", actif ? "page" : "false");
+  });
 
   if (name !== "series") openSeriesId = null;
   window.scrollTo(0, 0);
@@ -1003,14 +1005,14 @@ $("manual-form").addEventListener("submit", async (e) => {
     .slice(0, 50);
 
   if (collectionCache.some((s) => s.id === id)) {
-    return toast("Cette édition est déjà dans ta mangathèque.");
+    return toast("Cette édition est déjà dans ta collection.");
   }
 
   try {
     await addSeries({ id, title, cover, volumes: total });
     $("manual-form").reset();
     document.querySelector(".manual").open = false;
-    toast(`${title} est dans ta mangathèque.`);
+    toast(`${title} est dans ta collection.`);
   } catch {
     toast("L'ajout a échoué.");
   }
