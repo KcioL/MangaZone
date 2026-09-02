@@ -391,6 +391,12 @@ async function noter(serieId, note) {
 
   await chargerNote(serieId, true);   // la moyenne vient de changer
   renderCollection();
+  document.querySelectorAll(`#suggestions .poster[data-serie="${serieId}"] .poster-note,
+                             #editions .poster[data-serie="${serieId}"] .poster-note`)
+    .forEach((el) => {
+      const n = notesCache.get(serieId);
+      el.textContent = n && n.moyenne !== null ? texteNote(n) : "";
+    });
   if (openSeriesId === serieId) renderDetail();
 }
 
@@ -734,36 +740,79 @@ function suggestionCard(serie) {
   const card = document.createElement("button");
   card.type = "button";
   card.className = "poster";
+  card.dataset.serie = serie.id;
+
+  // Libellé d'origine conservé : il doit pouvoir être rétabli si la série est
+  // retirée de la collection.
+  card.dataset.meta = serie.note
+    || (serie.volumes ? `${serie.volumes} tomes` : "Série en cours");
+
   card.innerHTML = `
     <span class="poster-img">
       <img src="${serie.cover}" alt="" loading="lazy" referrerpolicy="no-referrer">
     </span>
     <span class="poster-name">${escapeHtml(serie.title)}</span>
-    <span class="poster-meta">${serie.note || (serie.volumes ? `${serie.volumes} tomes` : "Série en cours")}</span>`;
+    <span class="poster-meta"></span>
+    <span class="poster-note"></span>`;
 
-  const meta = card.querySelector(".poster-meta");
-  const marquerSuivie = () => {
-    if (!collectionCache.some((s) => s.id === serie.id)) return;
-    card.querySelector(".poster-img").insertAdjacentHTML(
-      "beforeend", `<span class="poster-check">Suivie</span>`);
-    meta.textContent = "Déjà dans ton rayon";
-  };
-  marquerSuivie();
+  synchroniserCarte(card);
+  observateurNotes.observe(card);
 
   card.addEventListener("click", async () => {
     if (collectionCache.some((s) => s.id === serie.id)) return showView("collection");
-    meta.textContent = "Ajout…";
+    card.querySelector(".poster-meta").textContent = "Ajout…";
     try {
       await addSeries(serie);
       toast(`${serie.title} est dans ton rayon.`);
-      marquerSuivie();
     } catch (err) {
-      meta.textContent = err.message === "annule" ? "Ajout annulé" : "Ajout impossible";
+      card.dataset.meta = err.message === "annule" ? "Ajout annulé" : "Ajout impossible";
+      synchroniserCarte(card);
     }
   });
 
   return card;
 }
+
+/* Le badge « Suivie » doit refléter l'état courant, pas celui du moment où la
+   carte a été fabriquée : sans ça, il subsiste après le retrait d'une série. */
+function synchroniserCarte(card) {
+  const suivie = collectionCache.some((s) => s.id === card.dataset.serie);
+
+  card.querySelector(".poster-meta").textContent =
+    suivie ? "Déjà dans ton rayon" : card.dataset.meta;
+
+  const image = card.querySelector(".poster-img");
+  const badge = image.querySelector(".poster-check");
+
+  if (suivie && !badge) {
+    image.insertAdjacentHTML("beforeend", `<span class="poster-check">Suivie</span>`);
+  } else if (!suivie && badge) {
+    badge.remove();
+  }
+}
+
+/* Rejoué à chaque changement de collection, pour les deux grilles. */
+function majSuggestions() {
+  document.querySelectorAll("#suggestions .poster, #editions .poster")
+    .forEach(synchroniserCarte);
+}
+
+/* Les notes ne sont demandées que pour les cartes qui entrent à l'écran :
+   interroger d'un coup les quarante suggestions ferait autant de requêtes
+   pour des séries que personne ne regardera. */
+const observateurNotes = new IntersectionObserver((entrees) => {
+  entrees.forEach((e) => {
+    if (!e.isIntersecting) return;
+    observateurNotes.unobserve(e.target);
+
+    chargerNote(e.target.dataset.serie)
+      .then((n) => {
+        const cible = e.target.querySelector(".poster-note");
+        if (cible) cible.textContent = n.moyenne === null ? "" : texteNote(n);
+      })
+      .catch(() => { /* une moyenne absente ne doit pas casser la grille */ });
+  });
+}, { rootMargin: "300px" });
 
 /* ══════════════════ Recherche ══════════════════ */
 
@@ -978,6 +1027,7 @@ function watchCollection(uid) {
     collectionCache = snap.docs.map((d) => d.data());
     renderCollection();
     renderSucces();
+    majSuggestions();
     if (openSeriesId) renderDetail();
 
     // L'ajout est confirmé par Firestore, pas par le clic : on attend que la

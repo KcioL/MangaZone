@@ -774,8 +774,22 @@ button, input { font: inherit; color: inherit; }
   display: block;
   font-size: 0.78rem;
   color: var(--brass);
-  margin-top: 2px;
-  min-height: 1.2em;      /* réserve la place avant l'arrivée de la moyenne */
+  margin-top: 3px;
+  /* Hauteur réservée d'avance : les moyennes arrivent après l'affichage de la
+     grille, et sans cette réserve les cartes sursauteraient à leur arrivée. */
+  min-height: 1.2em;
+}
+
+/* Sur les suggestions, la ligne reste vide tant que personne n'a noté :
+   on ne réserve donc pas de place inutile sous chaque couverture. */
+#suggestions .poster-note,
+#editions .poster-note {
+  min-height: 0;
+}
+
+#suggestions .poster-note:not(:empty),
+#editions .poster-note:not(:empty) {
+  margin-top: 4px;
 }
 
 .filters { display: flex; gap: 8px; margin-bottom: 26px; }
