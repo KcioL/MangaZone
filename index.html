@@ -2,11 +2,25 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- viewport-fit=cover est indispensable : sans lui, env(safe-area-inset-*)
+       vaut zéro sur iPhone et la barre passe sous la zone du geste d'accueil. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>MangaZone</title>
+  <!-- Petites tailles : le sigle seul, le lettrage y serait illisible.
+       Grandes tailles : le logo complet. Le navigateur choisit. -->
   <link rel="icon" type="image/png" sizes="32x32" href="Onglet-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="Onglet-64.png">
   <link rel="icon" type="image/png" sizes="512x512" href="Onglet-512.png">
   <link rel="apple-touch-icon" href="Onglet.png">
+
+  <!-- Application installable : lancée depuis l'icône, sans barre d'adresse. -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#201C2B">
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- iOS ignore le manifeste et exige encore ses propres balises. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MangaZone">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -22,7 +36,7 @@
   <div id="auth-screen" class="auth-screen" hidden>
     <div class="auth-layout">
       <div class="auth-hero" aria-hidden="true">
-        <img src="avatar/homme_3.png" alt="">
+        <img src="logo.png" alt="" class="auth-logo">
         <p class="auth-hero-text">MangaZone</p>
         <p class="auth-hero-note">Ta collection, tome par tome.</p>
       </div>
@@ -92,7 +106,7 @@
   <div id="app-screen" hidden>
     <header class="topbar">
       <div class="brand">
-        <img src="avatar/homme_1.png" alt="" class="brand-mark" id="brand-avatar">
+        <img src="logo.png" alt="" class="brand-mark">
         <h1 class="wordmark">MangaZone</h1>
       </div>
 
@@ -127,6 +141,7 @@
       </nav>
 
       <div class="topbar-right">
+        <img src="avatar/homme_1.png" alt="" class="avatar-pastille" id="brand-avatar">
         <span id="user-email" class="user-email"></span>
         <button type="button" id="change-avatar" class="btn-link">Changer d'avatar</button>
         <button type="button" id="logout" class="btn-link">Se déconnecter</button>
