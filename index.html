@@ -6,6 +6,7 @@
   <title>MaMangathèque</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" type="image/png" href="Onglet.png">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,6 +14,13 @@
 
   <!-- ══ Écran de connexion ══ -->
   <div id="auth-screen" class="auth-screen" hidden>
+    <div class="auth-layout">
+      <div class="auth-hero" aria-hidden="true">
+        <img src="img/mascotte.png" alt="">
+        <p class="auth-hero-text">MaMangathèque</p>
+        <p class="auth-hero-note">Ta collection, tome par tome.</p>
+      </div>
+
     <div class="auth-box">
       <div id="login-view">
         <form id="auth-form" class="auth-form" novalidate>
@@ -66,12 +74,16 @@
         </p>
       </div>
     </div>
+    </div>
   </div>
 
   <!-- ══ Application ══ -->
   <div id="app-screen" hidden>
     <header class="topbar">
-      <h1 class="wordmark">MaMangathèque</h1>
+      <div class="brand">
+        <img src="img/mascotte.png" alt="" class="brand-mark">
+        <h1 class="wordmark">MaMangathèque</h1>
+      </div>
 
       <nav class="tabs" aria-label="Sections">
         <button type="button" id="tab-discover"   class="tab is-active" aria-current="page">Découvrir</button>
@@ -141,9 +153,10 @@
 
         <div id="series-list" class="poster-grid"></div>
 
-        <p id="empty-state" class="empty-state" hidden>
-          Ta mangathèque est vide. Passe par l'onglet Découvrir pour ajouter une première série.
-        </p>
+        <div id="empty-state" class="empty-state" hidden>
+          <img src="img/mascotte.png" alt="" class="empty-art">
+          <p>Ta mangathèque est vide.<br>Passe par l'onglet Découvrir pour ajouter une première série.</p>
+        </div>
 
         <p id="loading" class="loading" hidden>Chargement…</p>
       </section>
