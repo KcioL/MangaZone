@@ -143,9 +143,19 @@ button, input { font: inherit; color: inherit; }
 
 .brand { display: flex; align-items: center; gap: 11px; }
 
+/* Le logo, à gauche du nom. Carré arrondi : il porte déjà sa propre tuile. */
 .brand-mark {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* L'avatar de la personne connectée, à droite près du pseudo. */
+.avatar-pastille {
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   object-fit: cover;
   background: var(--raised);
@@ -231,12 +241,9 @@ button, input { font: inherit; color: inherit; }
 .auth-hero img {
   width: 100%;
   aspect-ratio: 1;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
-  border-radius: 50%;
-  background: var(--raised);
-  border: 2px solid var(--brass);
-  box-shadow: 0 24px 46px rgba(217, 169, 76, 0.18);
+  filter: drop-shadow(0 24px 46px rgba(217, 169, 76, 0.22));
 }
 
 .auth-hero-text {
@@ -362,13 +369,32 @@ button, input { font: inherit; color: inherit; }
 .tabs { display: flex; gap: 2px; }
 
 .tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 6px 14px;
+  padding: 7px 14px;
   color: var(--muted);
   cursor: pointer;
 }
+
+/* Sans `fill: none`, un SVG se remplit en noir par défaut et les icônes
+   deviennent des taches pleines. Le trait suit la couleur du texte, si bien
+   que l'onglet actif colore icône et libellé d'un seul coup. */
+.tab-icone {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tab.is-active .tab-icone { stroke-width: 2; }
 
 .tab:hover { color: var(--text); }
 
