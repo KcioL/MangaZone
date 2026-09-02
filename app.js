@@ -1049,14 +1049,25 @@ function renderCollection() {
   $("empty-state").hidden = collectionCache.length > 0;
   $("stats").hidden       = collectionCache.length === 0;
 
-  let owned = 0, total = 0;
+  let owned = 0, total = 0, completes = 0;
 
-  collectionCache.forEach((series) => {
+  const estComplete = (s) => s.totalVolumes > 0 && s.owned.length === s.totalVolumes;
+
+  /* Les séries complètes remontent en tête. À l'intérieur de chaque groupe on
+     conserve l'ordre d'ajout : `sort` est stable, donc une simple comparaison
+     sur le seul critère « complète » suffit, sans départage supplémentaire.
+     La copie évite de réordonner le cache, qui doit rester tel que Firestore
+     l'a renvoyé pour les succès et les recherches. */
+  const ordonnees = [...collectionCache].sort(
+    (a, b) => Number(estComplete(b)) - Number(estComplete(a)));
+
+  ordonnees.forEach((series) => {
     owned += series.owned.length;
     total += series.totalVolumes;
 
     const manquants = series.totalVolumes - series.owned.length;
-    const complete  = manquants === 0;
+    const complete  = estComplete(series);
+    if (complete) completes++;
 
     const card = document.createElement("button");
     card.type = "button";
@@ -1081,9 +1092,10 @@ function renderCollection() {
     grid.appendChild(card);
   });
 
-  $("stat-owned").textContent   = owned;
-  $("stat-missing").textContent = total - owned;
-  $("stat-series").textContent  = collectionCache.length;
+  $("stat-owned").textContent    = owned;
+  $("stat-missing").textContent  = total - owned;
+  $("stat-series").textContent   = collectionCache.length;
+  $("stat-complete").textContent = completes;
 }
 
 /* ══════════════════ Détail d'une série ══════════════════ */
