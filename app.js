@@ -694,29 +694,65 @@ function suggestionCard(serie) {
 
 /* ══════════════════ Recherche ══════════════════ */
 
-$("search-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const terme = $("search-input").value.trim();
-  if (!terme) return;
+let minuteurRecherche = null;
+let jetonRecherche    = 0;      // identifie la dernière requête lancée
 
-  const box = $("search-results");
+/* Recherche au fil de la frappe.
+
+   Deux protections indispensables ici. L'amortissement évite de lancer une
+   requête par lettre, ce qui épuiserait vite le quota d'AniList. Le jeton écarte
+   les réponses périmées : « nar » peut très bien revenir après « naruto », et
+   afficherait alors les mauvais résultats. */
+$("search-input").addEventListener("input", () => {
+  const terme = $("search-input").value.trim();
+  clearTimeout(minuteurRecherche);
+
+  if (terme.length < 2) {
+    jetonRecherche++;                 // annule une réponse encore en vol
+    $("search-results").hidden = true;
+    $("search-input").classList.remove("is-searching");
+    return;
+  }
+
+  $("search-input").classList.add("is-searching");
+  minuteurRecherche = setTimeout(() => lancerRecherche(terme), 350);
+});
+
+// Entrée cherche immédiatement, sans attendre l'amortissement.
+$("search-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  clearTimeout(minuteurRecherche);
+  const terme = $("search-input").value.trim();
+  if (terme) lancerRecherche(terme);
+});
+
+async function lancerRecherche(terme) {
+  const jeton = ++jetonRecherche;
+  const box   = $("search-results");
+
+  // On ne vide pas la liste précédente : elle reste lisible pendant la requête,
+  // ce qui évite un clignotement à chaque lettre.
   box.hidden = false;
-  box.innerHTML = `<p class="result">Recherche en cours…</p>`;
+  if (!box.children.length) box.innerHTML = `<p class="result">Recherche en cours…</p>`;
 
   try {
     const series = await chercherSeries(terme);
+    if (jeton !== jetonRecherche) return;      // une frappe plus récente a pris le relais
 
     if (!series.length) {
-      box.innerHTML = `<p class="result">Aucune série trouvée pour « ${escapeHtml(terme)} ». Essaie le titre original ou anglais.</p>`;
-      return;
+      box.innerHTML = `<p class="result">Aucune série trouvée pour « ${escapeHtml(terme)} ».</p>`;
+    } else {
+      box.innerHTML = "";
+      series.forEach((serie) => box.appendChild(resultRow(serie)));
     }
-    box.innerHTML = "";
-    series.forEach((serie) => box.appendChild(resultRow(serie)));
   } catch (err) {
+    if (jeton !== jetonRecherche) return;
     console.error("Recherche :", err);
-    box.innerHTML = `<p class="result">La recherche n'a pas abouti : ${escapeHtml(err.message)}. Réessaie dans quelques secondes.</p>`;
+    box.innerHTML = `<p class="result">La recherche n'a pas abouti : ${escapeHtml(err.message)}.</p>`;
+  } finally {
+    if (jeton === jetonRecherche) $("search-input").classList.remove("is-searching");
   }
-});
+}
 
 function resultRow(serie) {
   const suivie = collectionCache.some((s) => s.id === serie.id);
