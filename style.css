@@ -65,9 +65,6 @@ button, input { font: inherit; color: inherit; }
   height: 42px;
   border-radius: 50%;
   object-fit: cover;
-  /* Cadrage sur le visage : l'image est un buste, un recadrage centré ne
-     montrerait que le torse à cette taille. */
-  object-position: 50% 8%;
   background: var(--raised);
   border: 1px solid var(--line);
   flex-shrink: 0;
@@ -221,6 +218,48 @@ button, input { font: inherit; color: inherit; }
 
 .auth-forgot { margin: 14px 0 0; font-size: 0.86rem; text-align: center; }
 .auth-switch { margin: 22px 0 0; font-size: 0.88rem; color: var(--muted); }
+
+/* ── Choix d'avatar ───────────────────────── */
+
+.avatar-choix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.avatar-option {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--raised);
+  cursor: pointer;
+  aspect-ratio: 1;
+  overflow: hidden;
+  /* Les avatars non retenus s'effacent pour que la sélection saute aux yeux. */
+  opacity: 0.5;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.avatar-option img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.avatar-option:hover { opacity: 0.85; }
+
+.avatar-option.is-active {
+  opacity: 1;
+  border-color: var(--brass);
+}
+
+.avatar-choix-large {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 26px;
+}
 
 /* ── Barre du haut ────────────────────────── */
 
@@ -628,10 +667,16 @@ button, input { font: inherit; color: inherit; }
 }
 
 .succes-art {
-  width: 210px;
-  height: auto;
+  width: 168px;
+  height: 168px;
   flex-shrink: 0;
-  filter: drop-shadow(0 18px 32px rgba(217, 169, 76, 0.18));
+  border-radius: 50%;
+  object-fit: cover;
+  /* Fond derrière la découpe : les images sont détourées et laisseraient
+     apparaître la page à travers les bords du personnage. */
+  background: var(--raised);
+  border: 2px solid var(--brass);
+  box-shadow: 0 18px 36px rgba(217, 169, 76, 0.16);
 }
 
 .succes-title { margin-top: 0; }
@@ -803,7 +848,7 @@ button, input { font: inherit; color: inherit; }
   .auth-hero { width: 240px; }
   .auth-hero-text { font-size: 1.9rem; }
   .succes-head { flex-direction: column; align-items: flex-start; gap: 20px; }
-  .succes-art { width: 160px; }
+  .succes-art { width: 128px; height: 128px; }
 }
 
 @media (max-width: 640px) {

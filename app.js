@@ -55,6 +55,31 @@ let volumeFilter    = "all";        // "all" | "owned" | "missing"
 let suggestionsLoaded = false;
 let ouvrirApresAjout  = null;      // série à ouvrir dès qu'elle arrive de Firestore
 
+// Nom du dossier contenant les images. Une seule ligne à changer si tu le
+// renommes ou si tu remontes les fichiers à la racine (mettre "").
+const DOSSIER_AVATARS = "avatar";
+
+const AVATARS = [
+  { id: "homme_1", nom: "Opérateur blond"   },
+  { id: "homme_2", nom: "Officier grisonnant" },
+  { id: "homme_3", nom: "Éclaireur en noir" },
+  { id: "femme_1", nom: "Cheveux courts"    },
+  { id: "femme_2", nom: "Rousse en tenue"   },
+  { id: "femme_3", nom: "Blonde à la radio" }
+];
+
+const AVATAR_DEFAUT = "homme_1";
+
+/* Le nom de fichier n'est jamais construit depuis la valeur brute de la base :
+   un identifiant inconnu retombe sur l'avatar par défaut, ce qui empêche
+   d'injecter un chemin arbitraire via un document modifié. */
+const fichierAvatar = (id) => {
+  const sur = AVATARS.some((a) => a.id === id) ? id : AVATAR_DEFAUT;
+  return DOSSIER_AVATARS ? `${DOSSIER_AVATARS}/${sur}.png` : `${sur}.png`;
+};
+
+let avatarChoisi = AVATAR_DEFAUT;   // sélection en cours sur l'écran d'inscription
+
 /* ══════════════════ Authentification ══════════════════ */
 
 onAuthStateChanged(auth, async (user) => {
@@ -65,6 +90,8 @@ onAuthStateChanged(auth, async (user) => {
     collectionCache = [];
     openSeriesId = null;
     succesConnus = null;
+    avatarChoisi = AVATAR_DEFAUT;
+    $("avatar-modal").hidden = true;
     $("app-screen").hidden  = true;
     $("auth-screen").hidden = false;
     $("series-list").innerHTML = "";
@@ -80,13 +107,16 @@ onAuthStateChanged(auth, async (user) => {
   loadSuggestions();
   loadEditions();
 
-  // Le pseudo enregistré dans Firestore fait foi si displayName n'a pas été posé.
+  // Le profil Firestore fait foi pour le pseudo comme pour l'avatar.
   try {
     const profil = await getDoc(doc(db, "users", user.uid));
-    if (profil.exists() && profil.data().pseudo) {
-      $("user-email").textContent = profil.data().pseudo;
+    if (profil.exists()) {
+      if (profil.data().pseudo) $("user-email").textContent = profil.data().pseudo;
+      avatarChoisi = profil.data().avatar || AVATAR_DEFAUT;
     }
   } catch { /* le profil n'est pas indispensable à l'affichage */ }
+
+  appliquerAvatar(avatarChoisi);
 });
 
 $("auth-toggle").addEventListener("click", () => {
@@ -99,6 +129,11 @@ $("auth-toggle").addEventListener("click", () => {
   $("auth-forgot-wrap").hidden      = signup;
   $("pseudo-field").hidden          = !signup;
   $("pseudo").required              = signup;
+  $("avatar-field").hidden          = !signup;
+  if (signup) {
+    avatarChoisi = AVATAR_DEFAUT;
+    grilleAvatars($("avatar-choix"), avatarChoisi, (id) => { avatarChoisi = id; });
+  }
   hideError();
 });
 
@@ -149,9 +184,11 @@ async function signUp(email, pass) {
   // laisser la personne sans compte alors qu'elle vient de le créer.
   try {
     await setDoc(doc(db, "usernames", key), { uid: user.uid });
-    await setDoc(doc(db, "users", user.uid), { pseudo, createdAt: Date.now() });
+    await setDoc(doc(db, "users", user.uid),
+      { pseudo, avatar: avatarChoisi, createdAt: Date.now() });
     await updateProfile(user, { displayName: pseudo });
     $("user-email").textContent = pseudo;
+    appliquerAvatar(avatarChoisi);
   } catch (err) {
     console.error("Enregistrement du pseudo :", err.code, err.message, err);
     toast("Compte créé, mais le pseudo n'a pas pu être enregistré. Vérifie les règles Firestore.");
@@ -247,6 +284,59 @@ const hideResetError = () => {
   el.hidden = true;
   el.classList.remove("is-note");
 };
+
+/* ══════════════════ Avatars ══════════════════ */
+
+/* La même grille sert à l'inscription et au changement ultérieur ; seul le
+   traitement de la sélection diffère. */
+function grilleAvatars(conteneur, actif, auChoix) {
+  conteneur.innerHTML = "";
+
+  AVATARS.forEach((a) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `avatar-option ${a.id === actif ? "is-active" : ""}`;
+    btn.setAttribute("role", "radio");
+    btn.setAttribute("aria-checked", a.id === actif);
+    btn.title = a.nom;
+    btn.innerHTML = `<img src="${fichierAvatar(a.id)}" alt="${a.nom}">`;
+
+    btn.addEventListener("click", () => {
+      [...conteneur.children].forEach((el) => {
+        el.classList.remove("is-active");
+        el.setAttribute("aria-checked", "false");
+      });
+      btn.classList.add("is-active");
+      btn.setAttribute("aria-checked", "true");
+      auChoix(a.id);
+    });
+
+    conteneur.appendChild(btn);
+  });
+}
+
+function appliquerAvatar(id) {
+  const src = fichierAvatar(id);
+  $("brand-avatar").src  = src;
+  $("succes-avatar").src = src;
+}
+
+$("change-avatar").addEventListener("click", () => {
+  grilleAvatars($("avatar-choix-modal"), avatarChoisi, async (id) => {
+    avatarChoisi = id;
+    appliquerAvatar(id);
+    try {
+      await setDoc(doc(db, "users", currentUser.uid), { avatar: id }, { merge: true });
+      toast("Avatar mis à jour.");
+    } catch (err) {
+      console.error("Avatar :", err.code, err.message);
+      toast("L'avatar n'a pas pu être enregistré.");
+    }
+  });
+  $("avatar-modal").hidden = false;
+});
+
+$("avatar-cancel").addEventListener("click", () => { $("avatar-modal").hidden = true; });
 
 /* ══════════════════ Succès ══════════════════
 

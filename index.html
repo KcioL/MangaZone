@@ -37,6 +37,11 @@
             <p class="field-hint">3 à 20 caractères : lettres, chiffres, tiret et tiret bas.</p>
           </div>
 
+          <div class="field" id="avatar-field" hidden>
+            <label>Ton avatar</label>
+            <div class="avatar-choix" id="avatar-choix" role="radiogroup" aria-label="Choix de l'avatar"></div>
+          </div>
+
           <div class="field">
             <label for="password">Mot de passe</label>
             <input type="password" id="password" autocomplete="current-password" minlength="6" required>
@@ -83,7 +88,7 @@
   <div id="app-screen" hidden>
     <header class="topbar">
       <div class="brand">
-        <img src="mascotte.png" alt="" class="brand-mark">
+        <img src="avatar/homme_1.png" alt="" class="brand-mark" id="brand-avatar">
         <h1 class="wordmark">MaMangathèque</h1>
       </div>
 
@@ -95,6 +100,7 @@
 
       <div class="topbar-right">
         <span id="user-email" class="user-email"></span>
+        <button type="button" id="change-avatar" class="btn-link">Changer d'avatar</button>
         <button type="button" id="logout" class="btn-link">Se déconnecter</button>
         <button type="button" id="delete-account" class="btn-link btn-link-quiet">Supprimer mon compte</button>
       </div>
@@ -167,7 +173,7 @@
       <!-- ── Succès ── -->
       <section id="view-succes" hidden>
         <div class="succes-head">
-          <img src="mascotte.png" alt="" class="succes-art">
+          <img src="avatar/homme_1.png" alt="" class="succes-art" id="succes-avatar">
           <div>
             <h2 class="section-title succes-title">Succès</h2>
             <p class="section-note" id="succes-resume"></p>
@@ -207,6 +213,17 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- ══ Changement d'avatar ══ -->
+  <div id="avatar-modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="avatar-heading">
+      <h2 id="avatar-heading" class="modal-title">Choisis ton avatar</h2>
+      <div class="avatar-choix avatar-choix-large" id="avatar-choix-modal" role="radiogroup" aria-label="Choix de l'avatar"></div>
+      <div class="modal-actions">
+        <button type="button" id="avatar-cancel" class="btn-link">Fermer</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══ Suppression du compte ══ -->
