@@ -72,6 +72,19 @@ button, input { font: inherit; color: inherit; }
   inherits: true;
 }
 
+/* Position du halo, en unités de fenêtre. Calculées dans app.js. */
+@property --halo-x {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: true;
+}
+
+@property --halo-y {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: true;
+}
+
 .fond {
   position: fixed;
   inset: 0;
@@ -93,13 +106,13 @@ button, input { font: inherit; color: inherit; }
   animation: derive 26s ease-in-out infinite alternate;
 }
 
-/* Le halo part en haut à gauche et descend jusqu'en bas à droite. La course
-   est exprimée en vw et vh : elle s'adapte ainsi à toutes les tailles de
-   fenêtre, et le halo occupe bien toute la page et non plus seulement le haut.
+/* Le halo serpente du haut vers le bas de la page. Sa position vient de deux
+   variables calculées dans app.js ; elles sont multipliées ici par 1vw et 1vh,
+   si bien que la trajectoire s'adapte à toutes les tailles de fenêtre.
 
-   L'intensité décroît légèrement pendant la course. La variable ne pilote que
-   `transform` et `opacity` : dans le canal alpha d'une couleur, elle rendrait
-   la déclaration invalide et ferait disparaître le dégradé entier. */
+   Les variables ne pilotent que `transform` et `opacity`. Dans le canal alpha
+   d'une couleur, elles rendraient la déclaration invalide et feraient
+   disparaître le dégradé entier. */
 .halo {
   position: absolute;
   display: block;
@@ -115,8 +128,8 @@ button, input { font: inherit; color: inherit; }
     transparent 80%);
   opacity: calc(1 - var(--defile) * 0.35);
   transform:
-    translateX(calc(-22vw + var(--defile) * 56vw))
-    translateY(calc(var(--defile) * 108vh))
+    translateX(calc(var(--halo-x) * 1vw))
+    translateY(calc(var(--halo-y) * 1vh))
     scale(calc(1 + var(--defile) * 0.12));
   will-change: transform, opacity;
 }

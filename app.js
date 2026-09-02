@@ -1132,10 +1132,29 @@ $("delete-confirm").addEventListener("click", async () => {
 
   let enAttente = false;
 
+  const racine = document.documentElement;
+
+  /* Trajectoire sinueuse du halo.
+
+     Un vrai tirage aléatoire produirait des sursauts, et le halo se retrouverait
+     ailleurs à chaque remontée de page. On combine plutôt deux sinusoïdes de
+     fréquences non harmoniques : le chemin ne se répète jamais à l'identique,
+     paraît libre, reste fluide, et se retrace exactement en sens inverse.
+
+     x oscille de part et d'autre du centre, y descend en ondulant : le halo
+     serpente du haut vers le bas au lieu de filer en diagonale. */
   const majuster = () => {
-    const hauteur = document.documentElement.scrollHeight - window.innerHeight;
+    const hauteur = racine.scrollHeight - window.innerHeight;
     const part = hauteur > 0 ? Math.min(1, window.scrollY / hauteur) : 0;
-    document.documentElement.style.setProperty("--defile", part.toFixed(4));
+
+    const x = Math.sin(part * 8.2 + 0.9) * 20      // grande oscillation
+            + Math.sin(part * 17.5 + 1.2) * 9;     // ondulation plus courte
+    const y = part * 104                            // descente d'ensemble
+            + Math.sin(part * 8.6) * 11;           // flânerie en chemin
+
+    racine.style.setProperty("--defile", part.toFixed(4));
+    racine.style.setProperty("--halo-x", x.toFixed(2));
+    racine.style.setProperty("--halo-y", y.toFixed(2));
     enAttente = false;
   };
 
