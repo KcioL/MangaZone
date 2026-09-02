@@ -59,9 +59,8 @@ button, input { font: inherit; color: inherit; }
 ::selection { background: var(--brass); color: var(--bg); }
 
 /* ── Fond animé ───────────────────────────────────────────────
-   Un large halo laiton en haut de page, dont la position et l'intensité
-   suivent le défilement, plus deux motifs de planche de manga : trame de
-   points et lignes de vitesse.
+   Un large halo laiton qui traverse la page au fil du défilement, plus des
+   lignes de vitesse empruntées aux planches de manga.
 
    --defile vaut 0 en haut de page et 1 en bas ; app.js la met à jour une
    fois par image au maximum.
@@ -95,6 +94,22 @@ button, input { font: inherit; color: inherit; }
    La variable ne pilote que `transform` et `opacity`. Placée dans le canal
    alpha d'une couleur, elle rendrait la déclaration invalide et ferait
    disparaître le dégradé entier. */
+/* Deux mouvements superposés, d'où les deux éléments imbriqués.
+
+   La piste porte une dérive lente et continue, qui vit même à l'arrêt.
+   Le halo porte le déplacement lié au défilement. Les deux ne peuvent pas
+   cohabiter sur un seul élément : une animation CSS et une valeur calculée
+   se disputeraient la propriété `transform`. */
+.halo-piste {
+  position: absolute;
+  inset: 0;
+  display: block;
+  animation: derive 26s ease-in-out infinite alternate;
+}
+
+/* Le halo traverse la page de la gauche vers la droite en descendant un peu,
+   et perd la moitié de son intensité. Le déplacement est exprimé en vw pour
+   que la course reste proportionnée quelle que soit la largeur d'écran. */
 .halo {
   position: absolute;
   display: block;
@@ -110,39 +125,29 @@ button, input { font: inherit; color: inherit; }
     transparent 80%);
   opacity: calc(1 - var(--defile) * 0.5);
   transform:
-    translateY(calc(var(--defile) * 120px))
-    scale(calc(1 + var(--defile) * 0.24));
+    translateX(calc(-16vw + var(--defile) * 48vw))
+    translateY(calc(var(--defile) * 210px))
+    scale(calc(1 + var(--defile) * 0.18));
   will-change: transform, opacity;
 }
 
-/* Trame de points, dérive lente et continue */
-.fond::before,
+/* Lignes de vitesse. Pour les retirer, il suffit de supprimer ce bloc. */
 .fond::after {
   content: "";
   position: absolute;
   inset: -12%;
-}
-
-.fond::before {
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(239, 234, 245, 0.07) 1px, transparent 0);
-  background-size: 15px 15px;
-  animation: trame 24s linear infinite;
-}
-
-/* Lignes de vitesse : elles filent avec le défilement, et respirent à l'arrêt */
-.fond::after {
   background-image: repeating-linear-gradient(
     114deg,
     transparent 0 44px,
-    rgba(255, 236, 200, 0.07) 44px 45px,
+    rgba(255, 236, 200, 0.05) 44px 45px,
     transparent 45px 104px);
   transform: translateX(calc(var(--defile) * -340px));
   animation: respiration 9s ease-in-out infinite;
 }
 
-@keyframes trame {
-  to { background-position: 150px 150px; }
+@keyframes derive {
+  from { transform: translate(-52px, -22px); }
+  to   { transform: translate( 52px,  26px); }
 }
 
 @keyframes respiration {
