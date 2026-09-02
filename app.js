@@ -291,7 +291,7 @@ const EDITIONS_VF = [
     id: "vf-death-note-black-edition",
     title: "Death Note — Black Edition",
     volumes: 6,
-    cover: "covers/death-note-black-edition.jpg",
+    cover: "death-note-black-edition.jpg",
     note: "Réédition en 6 tomes doubles"
   }
 ];
@@ -828,6 +828,29 @@ $("delete-confirm").addEventListener("click", async () => {
 });
 
 /* ══════════════════ Utilitaires ══════════════════ */
+
+/* Une couverture peut disparaître à tout moment : fichier absent du dépôt,
+   image distante supprimée. Plutôt qu'une icône cassée, on laisse le fond de
+   la carte et on affiche l'initiale du titre.
+   L'écoute est en phase de capture parce que l'événement "error" d'une image
+   ne remonte pas naturellement jusqu'au document. */
+document.addEventListener("error", (e) => {
+  const img = e.target;
+  if (img.tagName !== "IMG" || img.dataset.remplace) return;
+  img.dataset.remplace = "1";
+
+  const carte = img.closest(".poster-img");
+  if (carte) {
+    const titre = img.closest(".poster")?.querySelector(".poster-name")?.textContent || "?";
+    img.remove();
+    carte.insertAdjacentHTML("afterbegin",
+      `<span class="cover-fallback">${escapeHtml(titre.trim().charAt(0).toUpperCase())}</span>`);
+    return;
+  }
+
+  // Vignette de résultat ou couverture de la vue détail : on masque simplement.
+  img.style.visibility = "hidden";
+}, true);
 
 let toastTimer;
 function toast(msg) {
