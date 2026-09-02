@@ -59,8 +59,8 @@ button, input { font: inherit; color: inherit; }
 ::selection { background: var(--brass); color: var(--bg); }
 
 /* ── Fond animé ───────────────────────────────────────────────
-   Un large halo laiton qui traverse la page au fil du défilement, plus des
-   lignes de vitesse empruntées aux planches de manga.
+   Un large halo laiton qui traverse toute la page au fil du défilement,
+   du coin haut gauche vers le coin bas droit.
 
    --defile vaut 0 en haut de page et 1 en bas ; app.js la met à jour une
    fois par image au maximum.
@@ -80,20 +80,6 @@ button, input { font: inherit; color: inherit; }
   overflow: hidden;
 }
 
-/* Un seul halo, large et doux, ancré en haut de page. Il descend un peu,
-   s'élargit et s'estompe au fil du défilement : le contenu passe ainsi
-   progressivement de la lumière à l'ombre.
-
-   La variable ne pilote que `transform` et `opacity`. Placée dans le canal
-   alpha d'une couleur, elle rendrait la déclaration invalide et ferait
-   disparaître le dégradé entier. */
-/* Un seul halo, large et doux, ancré en haut de page. Il descend, s'élargit
-   et s'estompe au fil du défilement : le contenu passe progressivement de la
-   lumière à l'ombre.
-
-   La variable ne pilote que `transform` et `opacity`. Placée dans le canal
-   alpha d'une couleur, elle rendrait la déclaration invalide et ferait
-   disparaître le dégradé entier. */
 /* Deux mouvements superposés, d'où les deux éléments imbriqués.
 
    La piste porte une dérive lente et continue, qui vit même à l'arrêt.
@@ -107,9 +93,13 @@ button, input { font: inherit; color: inherit; }
   animation: derive 26s ease-in-out infinite alternate;
 }
 
-/* Le halo traverse la page de la gauche vers la droite en descendant un peu,
-   et perd la moitié de son intensité. Le déplacement est exprimé en vw pour
-   que la course reste proportionnée quelle que soit la largeur d'écran. */
+/* Le halo part en haut à gauche et descend jusqu'en bas à droite. La course
+   est exprimée en vw et vh : elle s'adapte ainsi à toutes les tailles de
+   fenêtre, et le halo occupe bien toute la page et non plus seulement le haut.
+
+   L'intensité décroît légèrement pendant la course. La variable ne pilote que
+   `transform` et `opacity` : dans le canal alpha d'une couleur, elle rendrait
+   la déclaration invalide et ferait disparaître le dégradé entier. */
 .halo {
   position: absolute;
   display: block;
@@ -119,40 +109,21 @@ button, input { font: inherit; color: inherit; }
   top: -430px;
   margin-left: -900px;
   background: radial-gradient(closest-side,
-    rgba(240, 196, 104, 0.48)  0%,
-    rgba(222, 166,  72, 0.25) 34%,
-    rgba(160, 108,  52, 0.10) 60%,
+    rgba(240, 196, 104, 0.40)  0%,
+    rgba(222, 166,  72, 0.21) 34%,
+    rgba(160, 108,  52, 0.09) 60%,
     transparent 80%);
-  opacity: calc(1 - var(--defile) * 0.5);
+  opacity: calc(1 - var(--defile) * 0.35);
   transform:
-    translateX(calc(-16vw + var(--defile) * 48vw))
-    translateY(calc(var(--defile) * 210px))
-    scale(calc(1 + var(--defile) * 0.18));
+    translateX(calc(-22vw + var(--defile) * 56vw))
+    translateY(calc(var(--defile) * 108vh))
+    scale(calc(1 + var(--defile) * 0.12));
   will-change: transform, opacity;
-}
-
-/* Lignes de vitesse. Pour les retirer, il suffit de supprimer ce bloc. */
-.fond::after {
-  content: "";
-  position: absolute;
-  inset: -12%;
-  background-image: repeating-linear-gradient(
-    114deg,
-    transparent 0 44px,
-    rgba(255, 236, 200, 0.05) 44px 45px,
-    transparent 45px 104px);
-  transform: translateX(calc(var(--defile) * -340px));
-  animation: respiration 9s ease-in-out infinite;
 }
 
 @keyframes derive {
   from { transform: translate(-52px, -22px); }
   to   { transform: translate( 52px,  26px); }
-}
-
-@keyframes respiration {
-  0%, 100% { opacity: 0.45; }
-  50%      { opacity: 1; }
 }
 
 /* ── Identité ─────────────────────────────── */
