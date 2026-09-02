@@ -64,6 +64,7 @@ onAuthStateChanged(auth, async (user) => {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
     collectionCache = [];
     openSeriesId = null;
+    succesConnus = null;
     $("app-screen").hidden  = true;
     $("auth-screen").hidden = false;
     $("series-list").innerHTML = "";
@@ -247,23 +248,107 @@ const hideResetError = () => {
   el.classList.remove("is-note");
 };
 
+/* ══════════════════ Succès ══════════════════
+
+   Rien n'est stocké : chaque succès est recalculé à partir de la collection.
+   Un compteur enregistré finirait tôt ou tard désynchronisé de la réalité,
+   par exemple après le retrait d'une série.
+   ═════════════════════════════════════════════ */
+
+const SUCCES = [
+  { id: "s1",  nom: "Première pierre",   texte: "Ajouter une première série",              palier: 1,   mesure: (b) => b.series },
+  { id: "s2",  nom: "Étagère garnie",    texte: "Suivre 5 séries",                         palier: 5,   mesure: (b) => b.series },
+  { id: "s3",  nom: "Bibliothécaire",    texte: "Suivre 15 séries",                        palier: 15,  mesure: (b) => b.series },
+  { id: "s4",  nom: "Archiviste",        texte: "Suivre 30 séries",                        palier: 30,  mesure: (b) => b.series },
+
+  { id: "t1",  nom: "Premier tome",      texte: "Posséder un premier tome",                palier: 1,   mesure: (b) => b.tomes },
+  { id: "t2",  nom: "Petite pile",       texte: "Posséder 10 tomes",                       palier: 10,  mesure: (b) => b.tomes },
+  { id: "t3",  nom: "Vraie collection",  texte: "Posséder 50 tomes",                       palier: 50,  mesure: (b) => b.tomes },
+  { id: "t4",  nom: "Mur de manga",      texte: "Posséder 100 tomes",                      palier: 100, mesure: (b) => b.tomes },
+  { id: "t5",  nom: "Fonds de dotation", texte: "Posséder 250 tomes",                      palier: 250, mesure: (b) => b.tomes },
+
+  { id: "c1",  nom: "Bouclée",           texte: "Compléter une série",                     palier: 1,   mesure: (b) => b.completes },
+  { id: "c2",  nom: "Perfectionniste",   texte: "Compléter 5 séries",                      palier: 5,   mesure: (b) => b.completes },
+  { id: "c3",  nom: "Intégraliste",      texte: "Compléter 10 séries",                     palier: 10,  mesure: (b) => b.completes },
+
+  { id: "l1",  nom: "Longue haleine",    texte: "Compléter une série de 20 tomes ou plus", palier: 1,   mesure: (b) => b.longuesCompletes },
+  { id: "e1",  nom: "Sur tous les fronts", texte: "Avoir 5 séries commencées mais inachevées", palier: 5, mesure: (b) => b.enCours },
+  { id: "m1",  nom: "Moitié du chemin",  texte: "Posséder la moitié de tous les tomes suivis", palier: 50, mesure: (b) => b.pourcentage }
+];
+
+let succesConnus = null;    // null tant que la première lecture n'a pas eu lieu
+
+function bilan() {
+  const series    = collectionCache.length;
+  const tomes     = collectionCache.reduce((n, s) => n + s.owned.length, 0);
+  const total     = collectionCache.reduce((n, s) => n + s.totalVolumes, 0);
+  const completes = collectionCache.filter((s) => s.owned.length === s.totalVolumes).length;
+
+  return {
+    series, tomes, completes,
+    longuesCompletes: collectionCache.filter(
+      (s) => s.totalVolumes >= 20 && s.owned.length === s.totalVolumes).length,
+    enCours: collectionCache.filter(
+      (s) => s.owned.length > 0 && s.owned.length < s.totalVolumes).length,
+    pourcentage: total ? Math.round((tomes / total) * 100) : 0
+  };
+}
+
+function renderSucces() {
+  const b = bilan();
+  const etat = SUCCES.map((s) => ({
+    ...s,
+    valeur:   Math.min(s.mesure(b), s.palier),
+    debloque: s.mesure(b) >= s.palier
+  }));
+
+  const obtenus = etat.filter((s) => s.debloque);
+
+  $("succes-resume").textContent = `${obtenus.length} succès sur ${SUCCES.length}`;
+  $("succes-bar").style.width = `${Math.round((obtenus.length / SUCCES.length) * 100)}%`;
+
+  $("succes-liste").innerHTML = etat.map((s) => `
+    <article class="succes ${s.debloque ? "is-done" : ""}">
+      <span class="succes-marque">${s.debloque ? "✦" : ""}</span>
+      <h3 class="succes-nom">${escapeHtml(s.nom)}</h3>
+      <p class="succes-texte">${escapeHtml(s.texte)}</p>
+      <p class="succes-jauge">${s.debloque ? "Débloqué" : `${s.valeur} / ${s.palier}`}</p>
+    </article>`).join("");
+
+  // Signaler les nouveaux succès, mais pas au premier chargement : tout
+  // paraîtrait débloqué à l'instant.
+  const ids = new Set(obtenus.map((s) => s.id));
+  if (succesConnus) {
+    const nouveaux = obtenus.filter((s) => !succesConnus.has(s.id));
+    if (nouveaux.length === 1) toast(`Succès débloqué : ${nouveaux[0].nom}`);
+    else if (nouveaux.length > 1) toast(`${nouveaux.length} nouveaux succès débloqués`);
+  }
+  succesConnus = ids;
+}
+
 /* ══════════════════ Navigation par onglets ══════════════════ */
 
 $("tab-discover").addEventListener("click", () => showView("discover"));
 $("tab-collection").addEventListener("click", () => showView("collection"));
+$("tab-succes").addEventListener("click", () => showView("succes"));
 $("back-to-collection").addEventListener("click", () => showView("collection"));
 
 function showView(name) {
   $("view-discover").hidden   = name !== "discover";
   $("view-collection").hidden = name !== "collection";
+  $("view-succes").hidden     = name !== "succes";
   $("view-series").hidden     = name !== "series";
 
   // La vue détail reste rattachée à l'onglet Collection.
-  const surCollection = name !== "discover";
-  $("tab-discover").classList.toggle("is-active", !surCollection);
-  $("tab-collection").classList.toggle("is-active", surCollection);
-  $("tab-discover").setAttribute("aria-current", surCollection ? "false" : "page");
-  $("tab-collection").setAttribute("aria-current", surCollection ? "page" : "false");
+  const onglet = name === "discover" ? "discover"
+               : name === "succes"   ? "succes"
+               : "collection";
+
+  [["tab-discover", "discover"], ["tab-collection", "collection"], ["tab-succes", "succes"]]
+    .forEach(([id, cle]) => {
+      $(id).classList.toggle("is-active", cle === onglet);
+      $(id).setAttribute("aria-current", cle === onglet ? "page" : "false");
+    });
 
   if (name !== "series") openSeriesId = null;
   window.scrollTo(0, 0);
@@ -611,6 +696,7 @@ function watchCollection(uid) {
     $("loading").hidden = true;
     collectionCache = snap.docs.map((d) => d.data());
     renderCollection();
+    renderSucces();
     if (openSeriesId) renderDetail();
 
     // L'ajout est confirmé par Firestore, pas par le clic : on attend que la

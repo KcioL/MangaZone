@@ -61,8 +61,8 @@ button, input { font: inherit; color: inherit; }
 .brand { display: flex; align-items: center; gap: 11px; }
 
 .brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   object-fit: cover;
   /* Cadrage sur le visage : l'image est un buste, un recadrage centré ne
@@ -143,7 +143,7 @@ button, input { font: inherit; color: inherit; }
 }
 
 .auth-hero {
-  width: 300px;
+  width: 400px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -154,12 +154,12 @@ button, input { font: inherit; color: inherit; }
   display: block;
   /* Une lueur laiton sous le personnage l'ancre au fond au lieu de le laisser
      flotter, et rattrape le contraste de sa tenue sombre sur fond sombre. */
-  filter: drop-shadow(0 18px 34px rgba(217, 169, 76, 0.16));
+  filter: drop-shadow(0 24px 46px rgba(217, 169, 76, 0.2));
 }
 
 .auth-hero-text {
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin: 12px 0 0;
   color: var(--text);
 }
@@ -424,6 +424,18 @@ button, input { font: inherit; color: inherit; }
 
 .poster:hover .poster-img { box-shadow: 0 0 0 2px var(--brass); }
 
+/* Affiché à la place d'une couverture introuvable. */
+.cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: var(--line);
+  background: var(--raised);
+}
+
 .poster-name {
   display: -webkit-box;
   font-size: 0.88rem;
@@ -606,6 +618,82 @@ button, input { font: inherit; color: inherit; }
   background: rgba(26, 21, 32, 0.45);
 }
 
+/* ── Succès ───────────────────────────────── */
+
+.succes-head {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 40px;
+}
+
+.succes-art {
+  width: 210px;
+  height: auto;
+  flex-shrink: 0;
+  filter: drop-shadow(0 18px 32px rgba(217, 169, 76, 0.18));
+}
+
+.succes-title { margin-top: 0; }
+.succes-head .progress { margin: 16px 0 0; }
+
+.succes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 16px;
+}
+
+.succes {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 20px 18px;
+  background: var(--surface);
+  /* Un succès non obtenu reste lisible mais en retrait : il indique un cap
+     à viser, il ne doit pas concurrencer ceux qui sont acquis. */
+  opacity: 0.62;
+}
+
+.succes.is-done {
+  opacity: 1;
+  border-color: var(--brass);
+  background: linear-gradient(160deg, rgba(217, 169, 76, 0.12), var(--surface) 60%);
+}
+
+.succes-marque {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  color: var(--brass);
+  font-size: 1.1rem;
+}
+
+.succes-nom {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  margin: 0 0 4px;
+  padding-right: 24px;
+}
+
+.succes-texte {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+
+.succes-jauge {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.succes.is-done .succes-jauge { color: var(--brass); }
+
 /* ── Zone sensible ────────────────────────── */
 
 .danger {
@@ -662,13 +750,13 @@ button, input { font: inherit; color: inherit; }
 .empty-state p { margin: 0; }
 
 .empty-art {
-  width: 190px;
+  width: 300px;
   height: auto;
   display: block;
   margin: 0 auto 20px;
   /* Volontairement en retrait : le message doit primer sur le décor. */
-  opacity: 0.55;
-  filter: drop-shadow(0 14px 26px rgba(217, 169, 76, 0.12));
+  opacity: 0.7;
+  filter: drop-shadow(0 18px 32px rgba(217, 169, 76, 0.15));
 }
 
 .toast {
@@ -690,14 +778,18 @@ button, input { font: inherit; color: inherit; }
   /* En dessous de cette largeur, la colonne latérale écraserait le formulaire.
      L'illustration passe au-dessus, en plus petit. */
   .auth-layout { flex-direction: column; gap: 24px; }
-  .auth-hero { width: 190px; }
-  .auth-hero-text { font-size: 1.5rem; }
+  .auth-hero { width: 240px; }
+  .auth-hero-text { font-size: 1.9rem; }
+  .succes-head { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .succes-art { width: 160px; }
 }
 
 @media (max-width: 640px) {
-  .auth-hero { width: 150px; }
+  .auth-hero { width: 190px; }
   .auth-hero-note { display: none; }
-  .empty-art { width: 140px; }
+  .empty-art { width: 200px; }
+  .succes-art { display: none; }
+  .succes-grid { grid-template-columns: 1fr; }
   .topbar { gap: 14px; padding: 14px 18px; }
   .topbar-right { width: 100%; margin-left: 0; gap: 14px; }
   .wrap { padding: 26px 18px 64px; }

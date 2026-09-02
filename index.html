@@ -90,6 +90,7 @@
       <nav class="tabs" aria-label="Sections">
         <button type="button" id="tab-discover"   class="tab is-active" aria-current="page">Découvrir</button>
         <button type="button" id="tab-collection" class="tab">Collection</button>
+        <button type="button" id="tab-succes" class="tab">Succès</button>
       </nav>
 
       <div class="topbar-right">
@@ -161,6 +162,20 @@
         </div>
 
         <p id="loading" class="loading" hidden>Chargement…</p>
+      </section>
+
+      <!-- ── Succès ── -->
+      <section id="view-succes" hidden>
+        <div class="succes-head">
+          <img src="mascotte.png" alt="" class="succes-art">
+          <div>
+            <h2 class="section-title succes-title">Succès</h2>
+            <p class="section-note" id="succes-resume"></p>
+            <div class="progress"><span id="succes-bar"></span></div>
+          </div>
+        </div>
+
+        <div id="succes-liste" class="succes-grid"></div>
       </section>
 
       <!-- ── Détail d'une série ── -->
