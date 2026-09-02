@@ -1226,6 +1226,44 @@ async function rendreNotes(serieId) {
   dessiner(frais);
 }
 
+/* Coche d'un coup tous les tomes de 1 à N.
+
+   L'opération est purement additive : les tomes déjà cochés au-delà de N sont
+   conservés. Quelqu'un qui possède les tomes 1 à 10 et le tome 22 coche donc
+   la plage jusqu'à 10, puis le 22 séparément.
+
+   Intérêt secondaire mais réel : une seule écriture Firestore au lieu d'une
+   par tome. Saisir une collection de cent tomes passe de cent écritures à
+   quelques-unes, ce qui compte sur un quota quotidien. */
+$("detail-plage").addEventListener("click", async () => {
+  const series = collectionCache.find((s) => s.id === openSeriesId);
+  if (!series) return;
+
+  const saisi = prompt(
+    `Jusqu'à quel tome de « ${series.title} » ?\n` +
+    `Tous les tomes de 1 à ce numéro seront cochés. ` +
+    `Ceux que tu possèdes déjà au-delà sont conservés.`,
+    String(series.totalVolumes));
+  if (saisi === null) return;
+
+  const n = Number(saisi);
+  if (!Number.isInteger(n) || n < 1 || n > series.totalVolumes) {
+    return toast(`Indique un numéro entre 1 et ${series.totalVolumes}.`);
+  }
+
+  const plage = Array.from({ length: n }, (_, i) => String(i + 1));
+  const ajoutes = plage.filter((v) => !series.owned.includes(v)).length;
+
+  if (!ajoutes) return toast("Tu possèdes déjà tous ces tomes.");
+
+  // L'ensemble dédoublonne, puis on trie pour garder une liste lisible en base.
+  const owned = [...new Set([...series.owned, ...plage])]
+    .sort((a, b) => Number(a) - Number(b));
+
+  await updateDoc(doc(db, "users", currentUser.uid, "series", series.id), { owned });
+  toast(`${ajoutes} ${ajoutes > 1 ? "tomes ajoutés" : "tome ajouté"}.`);
+});
+
 /* Le nombre de tomes de l'édition française diffère souvent du référencement
    japonais, et une série en cours avance : il faut pouvoir le corriger. */
 $("detail-count-edit").addEventListener("click", async () => {

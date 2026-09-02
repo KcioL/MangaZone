@@ -724,6 +724,14 @@ button, input { font: inherit; color: inherit; }
 
 .detail-meta { flex: 1; min-width: 0; }
 
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
 .series-title {
   font-family: var(--font-display);
   font-size: 2.1rem;
