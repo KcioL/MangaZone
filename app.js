@@ -1066,7 +1066,7 @@ function renderCollection() {
   $("empty-state").hidden = collectionCache.length > 0;
   $("stats").hidden       = collectionCache.length === 0;
 
-  let owned = 0, total = 0, completes = 0;
+  let owned = 0, total = 0, completes = 0, commencees = 0;
 
   const estComplete = (s) => s.totalVolumes > 0 && s.owned.length === s.totalVolumes;
 
@@ -1085,6 +1085,9 @@ function renderCollection() {
     const manquants = series.totalVolumes - series.owned.length;
     const complete  = estComplete(series);
     if (complete) completes++;
+    // Une série est commencée dès le premier tome coché. Toute série complète
+    // est donc aussi commencée : le premier nombre ne dépasse jamais le second.
+    if (series.owned.length > 0) commencees++;
 
     const card = document.createElement("button");
     card.type = "button";
@@ -1112,7 +1115,7 @@ function renderCollection() {
   $("stat-owned").textContent    = owned;
   $("stat-missing").textContent  = total - owned;
   $("stat-series").textContent   = collectionCache.length;
-  $("stat-complete").textContent = completes;
+  $("stat-complete").textContent = `${completes} / ${commencees}`;
 }
 
 /* ══════════════════ Détail d'une série ══════════════════ */

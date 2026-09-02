@@ -1129,12 +1129,18 @@ button, input { font: inherit; color: inherit; }
   .auth-hero { width: 160px; }
   .auth-hero-note { display: none; }
   .empty-art { width: 132px; height: 132px; }
-  .succes-art { display: none; }
+  /* L'avatar était masqué ici, alors que c'est l'endroit où il a le plus de
+     sens : il accompagne la progression. Il reste au-dessus du titre, comme au
+     palier précédent — côte à côte, les deux seraient à l'étroit. */
+  .succes-art { width: 150px; height: 150px; }
   .succes-cartes { grid-template-columns: 1fr; }
   /* En haut, l'identité seule ; la navigation descend en bas d'écran, à portée
      de pouce, comme dans les applications mobiles. */
   .topbar { gap: 10px; padding: 12px 16px; }
   .tabs { display: none; }
+  /* Plus lisible au pouce, et l'avatar cesse d'être un détail décoratif. */
+  .avatar-pastille { width: 40px; height: 40px; }
+  .brand-mark { width: 36px; height: 36px; }
   .topbar-right {
     width: 100%;
     margin-left: 0;
