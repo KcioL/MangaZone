@@ -1,0 +1,36 @@
+{
+  "name": "MangaZone",
+  "short_name": "MangaZone",
+  "description": "Suivi de collection de manga, tome par tome.",
+  "lang": "fr",
+  "dir": "ltr",
+
+  "start_url": "./",
+  "scope": "./",
+
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+
+  "background_color": "#17141F",
+  "theme_color": "#201C2B",
+
+  "icons": [
+    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "Ma collection",
+      "url": "./?vue=collection",
+      "icons": [{ "src": "icone-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mes succès",
+      "url": "./?vue=succes",
+      "icons": [{ "src": "icone-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
