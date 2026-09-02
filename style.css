@@ -29,8 +29,10 @@
 
 html, body { margin: 0; padding: 0; }
 
+html { background: var(--bg); }
+
 body {
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 16px;
@@ -55,6 +57,58 @@ button, input { font: inherit; color: inherit; }
 }
 
 ::selection { background: var(--brass); color: var(--bg); }
+
+/* ── Fond animé ───────────────────────────────────────────────
+   Deux motifs empruntés à la trame des planches de manga : les points
+   de trame mécanique, et les lignes de vitesse. Les deux dérivent très
+   lentement et en sens opposé, ce qui crée un mouvement perceptible sans
+   qu'aucune des deux couches n'attire l'œil. Opacités volontairement très
+   basses : le fond ne doit jamais concurrencer les couvertures.
+   ─────────────────────────────────────────────────────────── */
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -10%;
+  z-index: -1;
+  pointer-events: none;   /* le décor ne doit intercepter aucun clic */
+}
+
+/* Trame de points, plus une lueur laiton en haut de page */
+body::before {
+  background-image:
+    radial-gradient(620px 320px at 50% -14%, rgba(217, 169, 76, 0.05), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgba(239, 234, 245, 0.055) 1px, transparent 0);
+  background-size: 100% 100%, 15px 15px;
+  animation: trame 90s linear infinite;
+}
+
+/* Lignes de vitesse */
+body::after {
+  background-image: repeating-linear-gradient(
+    114deg,
+    transparent 0 46px,
+    rgba(217, 169, 76, 0.045) 46px 47px,
+    transparent 47px 108px);
+  animation: vitesse 70s linear infinite, respiration 14s ease-in-out infinite;
+}
+
+@keyframes trame {
+  to { background-position: 0 0, 300px 300px; }
+}
+
+@keyframes vitesse {
+  to { background-position: 640px 0; }
+}
+
+@keyframes respiration {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* Le fond reste, figé, si la personne a demandé moins de mouvement :
+   la règle générale plus bas coupe déjà toutes les animations. */
 
 /* ── Identité ─────────────────────────────── */
 
@@ -168,6 +222,7 @@ button, input { font: inherit; color: inherit; }
 }
 
 .auth-box {
+  position: relative;
   width: 100%;
   max-width: 380px;
   background: var(--surface);
