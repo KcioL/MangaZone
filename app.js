@@ -1121,6 +1121,35 @@ $("delete-confirm").addEventListener("click", async () => {
   }
 });
 
+/* ══════════════════ Fond réactif au défilement ══════════════════ */
+
+/* Écrit --defile entre 0 et 1 sur <html>, que le CSS utilise pour déplacer
+   les halos. La mise à jour est calée sur le rafraîchissement de l'écran :
+   l'événement de défilement se déclenche bien plus souvent que nécessaire,
+   et écrire dans le style à chaque fois provoquerait des saccades. */
+(function fondReactif() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  let enAttente = false;
+
+  const majuster = () => {
+    const hauteur = document.documentElement.scrollHeight - window.innerHeight;
+    const part = hauteur > 0 ? Math.min(1, window.scrollY / hauteur) : 0;
+    document.documentElement.style.setProperty("--defile", part.toFixed(4));
+    enAttente = false;
+  };
+
+  const auDefilement = () => {
+    if (enAttente) return;
+    enAttente = true;
+    requestAnimationFrame(majuster);
+  };
+
+  addEventListener("scroll", auDefilement, { passive: true });
+  addEventListener("resize", auDefilement);
+  majuster();
+})();
+
 /* ══════════════════ Utilitaires ══════════════════ */
 
 /* Une couverture peut disparaître à tout moment : fichier absent du dépôt,

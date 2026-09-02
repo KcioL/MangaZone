@@ -59,56 +59,79 @@ button, input { font: inherit; color: inherit; }
 ::selection { background: var(--brass); color: var(--bg); }
 
 /* ── Fond animé ───────────────────────────────────────────────
-   Deux motifs empruntés à la trame des planches de manga : les points
-   de trame mécanique, et les lignes de vitesse. Les deux dérivent très
-   lentement et en sens opposé, ce qui crée un mouvement perceptible sans
-   qu'aucune des deux couches n'attire l'œil. Opacités volontairement très
-   basses : le fond ne doit jamais concurrencer les couvertures.
+   Deux halos de couleurs opposées — laiton en haut, violet en bas —
+   dont la position suit le défilement : en descendant, le laiton plonge
+   et le violet remonte, si bien que le haut et le bas de page n'ont pas
+   la même ambiance. Par-dessus, deux motifs de planche de manga : trame
+   de points et lignes de vitesse.
+
+   La variable --defile vaut 0 en haut de page et 1 en bas. Elle est mise
+   à jour par app.js, une fois par image au maximum.
    ─────────────────────────────────────────────────────────── */
 
-body::before,
-body::after {
-  content: "";
+.fond {
   position: fixed;
-  inset: -10%;
+  inset: 0;
   z-index: -1;
   pointer-events: none;   /* le décor ne doit intercepter aucun clic */
-}
+  overflow: hidden;
 
-/* Trame de points, plus une lueur laiton en haut de page */
-body::before {
+  /* Les halos restent ancrés aux bords et glissent latéralement : un halo qui
+     traverserait le centre de l'écran passerait derrière le texte et ruinerait
+     le contraste. Ce qui change avec le défilement, c'est leur position le long
+     du bord et leur intensité — pas leur passage au milieu. */
   background-image:
-    radial-gradient(620px 320px at 50% -14%, rgba(217, 169, 76, 0.05), transparent 70%),
-    radial-gradient(circle at 1px 1px, rgba(239, 234, 245, 0.055) 1px, transparent 0);
-  background-size: 100% 100%, 15px 15px;
-  animation: trame 90s linear infinite;
+    /* Laiton, bord haut : glisse vers la gauche et s'estompe */
+    radial-gradient(980px 520px at calc(56% - var(--defile, 0) * 34%) -14%,
+                    rgba(217, 169, 76, calc(0.17 - var(--defile, 0) * 0.11)),
+                    transparent 66%),
+    /* Violet, bord bas : glisse vers la droite et s'intensifie */
+    radial-gradient(900px 560px at calc(10% + var(--defile, 0) * 44%) 116%,
+                    rgba(126, 88, 196, calc(0.11 + var(--defile, 0) * 0.12)),
+                    transparent 68%),
+    /* Braise rouge, coin bas droit : recule à mesure qu'on descend */
+    radial-gradient(720px 480px at calc(100% - var(--defile, 0) * 16%)
+                                   calc(118% + var(--defile, 0) * 10%),
+                    rgba(201, 106, 122, 0.10), transparent 70%);
 }
 
-/* Lignes de vitesse */
-body::after {
+/* Trame de points : dérive lente et continue */
+.fond::before,
+.fond::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+}
+
+.fond::before {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(239, 234, 245, 0.07) 1px, transparent 0);
+  background-size: 15px 15px;
+  animation: trame 24s linear infinite;
+}
+
+/* Lignes de vitesse : elles filent avec le défilement, et respirent à l'arrêt */
+.fond::after {
   background-image: repeating-linear-gradient(
     114deg,
-    transparent 0 46px,
-    rgba(217, 169, 76, 0.045) 46px 47px,
-    transparent 47px 108px);
-  animation: vitesse 70s linear infinite, respiration 14s ease-in-out infinite;
+    transparent 0 44px,
+    rgba(255, 236, 200, 0.07) 44px 45px,
+    transparent 45px 104px);
+  transform: translateX(calc(var(--defile, 0) * -320px));
+  animation: respiration 9s ease-in-out infinite;
 }
 
 @keyframes trame {
-  to { background-position: 0 0, 300px 300px; }
-}
-
-@keyframes vitesse {
-  to { background-position: 640px 0; }
+  to { background-position: 150px 150px; }
 }
 
 @keyframes respiration {
-  0%, 100% { opacity: 0.55; }
+  0%, 100% { opacity: 0.45; }
   50%      { opacity: 1; }
 }
 
-/* Le fond reste, figé, si la personne a demandé moins de mouvement :
-   la règle générale plus bas coupe déjà toutes les animations. */
+/* Si la personne a demandé moins de mouvement, la règle générale en bas de
+   fichier coupe les animations ; les halos restent, simplement figés. */
 
 /* ── Identité ─────────────────────────────── */
 
