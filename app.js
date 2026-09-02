@@ -6,7 +6,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc,
-  onSnapshot, arrayUnion, arrayRemove, query, orderBy
+  onSnapshot, arrayUnion, arrayRemove, query, orderBy,
+  getAggregateFromServer, average, count
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -90,6 +91,7 @@ onAuthStateChanged(auth, async (user) => {
     collectionCache = [];
     openSeriesId = null;
     succesConnus = null;
+    notesCache.clear();
     avatarChoisi = AVATAR_DEFAUT;
     $("avatar-modal").hidden = true;
     $("app-screen").hidden  = true;
@@ -337,6 +339,65 @@ $("change-avatar").addEventListener("click", () => {
 });
 
 $("avatar-cancel").addEventListener("click", () => { $("avatar-modal").hidden = true; });
+
+/* ══════════════════ Notes ══════════════════
+
+   Chaque personne dépose un vote dans notes/{serie}/votes/{uid}. La moyenne
+   n'est stockée nulle part : elle est demandée à Firestore, qui la calcule sur
+   ses serveurs. Un compteur cumulé qu'on incrémenterait à la main serait à la
+   fois faux dès la première anomalie et impossible à protéger correctement —
+   n'importe qui pourrait l'augmenter sans voter.
+
+   Ces requêtes d'agrégation sont facturées une lecture par tranche de mille
+   votes, donc bien moins qu'un parcours de tous les documents.
+   ═══════════════════════════════════════════ */
+
+const notesCache = new Map();   // serieId -> { moyenne, nombre, mienne }
+
+const votesDe = (serieId) => collection(db, "notes", serieId, "votes");
+
+async function chargerNote(serieId, forcer = false) {
+  if (!forcer && notesCache.has(serieId)) return notesCache.get(serieId);
+
+  const vide = { moyenne: null, nombre: 0, mienne: null };
+
+  try {
+    const [agg, mien] = await Promise.all([
+      getAggregateFromServer(votesDe(serieId), {
+        moyenne: average("note"),
+        nombre:  count()
+      }),
+      getDoc(doc(db, "notes", serieId, "votes", currentUser.uid))
+    ]);
+
+    const d = agg.data();
+    const res = {
+      moyenne: d.nombre ? d.moyenne : null,
+      nombre:  d.nombre,
+      mienne:  mien.exists() ? mien.data().note : null
+    };
+    notesCache.set(serieId, res);
+    return res;
+  } catch (err) {
+    console.error("Lecture des notes :", err.code, err.message);
+    return vide;
+  }
+}
+
+async function noter(serieId, note) {
+  const ref = doc(db, "notes", serieId, "votes", currentUser.uid);
+  if (note === null) await deleteDoc(ref);
+  else await setDoc(ref, { note, at: Date.now() });
+
+  await chargerNote(serieId, true);   // la moyenne vient de changer
+  renderCollection();
+  if (openSeriesId === serieId) renderDetail();
+}
+
+const texteNote = (n) =>
+  n.moyenne === null
+    ? "Pas encore noté"
+    : `${n.moyenne.toFixed(1)} / 10 · ${n.nombre} ${n.nombre > 1 ? "avis" : "avis"}`;
 
 /* ══════════════════ Succès ══════════════════
 
@@ -945,7 +1006,14 @@ function renderCollection() {
         ${complete ? `<span class="poster-check">Complète</span>` : ""}
       </span>
       <span class="poster-name">${escapeHtml(series.title)}</span>
-      <span class="poster-meta">${complete ? "Rien ne manque" : `${manquants} ${manquants > 1 ? "tomes" : "tome"} à trouver`}</span>`;
+      <span class="poster-meta">${complete ? "Rien ne manque" : `${manquants} ${manquants > 1 ? "tomes" : "tome"} à trouver`}</span>
+      <span class="poster-note"></span>`;
+
+    // La moyenne arrive après coup : la carte s'affiche sans attendre.
+    const cible = card.querySelector(".poster-note");
+    const connu = notesCache.get(series.id);
+    if (connu) cible.textContent = texteNote(connu);
+    else chargerNote(series.id).then((n) => { cible.textContent = texteNote(n); });
 
     card.addEventListener("click", () => openSeries(series.id));
     grid.appendChild(card);
@@ -991,6 +1059,8 @@ function renderDetail() {
     : `${series.owned.length} tomes sur ${series.totalVolumes} — il t'en manque ${manquants}`;
   $("detail-bar").style.width = `${pct}%`;
 
+  rendreNotes(series.id);
+
   const grid = $("detail-volumes");
   grid.innerHTML = "";
 
@@ -1022,6 +1092,39 @@ function renderDetail() {
     btn.addEventListener("click", () => toggleVolume(series.id, n, has));
     grid.appendChild(btn);
   });
+}
+
+/* Les dix boutons de notation, plus la moyenne. La moyenne arrive de façon
+   asynchrone : on affiche d'abord ce qu'on a en cache, puis on rafraîchit. */
+async function rendreNotes(serieId) {
+  const zone = $("detail-notes");
+  const connu = notesCache.get(serieId);
+
+  const dessiner = (n) => {
+    if (openSeriesId !== serieId) return;   // la personne a changé de page
+    $("detail-note").textContent = texteNote(n);
+
+    zone.innerHTML = "";
+    for (let i = 1; i <= 10; i++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = `note-btn ${n.mienne === i ? "is-active" : ""}`;
+      b.textContent = i;
+      b.setAttribute("aria-pressed", n.mienne === i);
+      b.title = n.mienne === i ? "Cliquer pour retirer ta note" : `Noter ${i} sur 10`;
+      b.addEventListener("click", () => noter(serieId, n.mienne === i ? null : i));
+      zone.appendChild(b);
+    }
+
+    const info = document.createElement("span");
+    info.className = "note-mienne";
+    info.textContent = n.mienne ? `Ta note : ${n.mienne}` : "Tu n'as pas encore noté";
+    zone.appendChild(info);
+  };
+
+  dessiner(connu || { moyenne: null, nombre: 0, mienne: null });
+  const frais = await chargerNote(serieId);
+  dessiner(frais);
 }
 
 /* Le nombre de tomes de l'édition française diffère souvent du référencement
