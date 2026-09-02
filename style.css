@@ -1135,8 +1135,16 @@ button, input { font: inherit; color: inherit; }
   .succes-art { width: 150px; height: 150px; }
   .succes-cartes { grid-template-columns: 1fr; }
   /* En haut, l'identité seule ; la navigation descend en bas d'écran, à portée
-     de pouce, comme dans les applications mobiles. */
-  .topbar { gap: 10px; padding: 12px 16px; }
+     de pouce, comme dans les applications mobiles.
+
+     La barre d'état est translucide en mode application : sans cette réserve,
+     le titre se glisse sous l'heure et l'encoche. Le fond de la barre remonte
+     jusqu'au bord de l'écran, si bien que l'heure se détache sur la même
+     couleur. Le contenu qui défile passe dessous, ce qui est voulu. */
+  .topbar {
+    gap: 10px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
+  }
   .tabs { display: none; }
   /* Plus lisible au pouce, et l'avatar cesse d'être un détail décoratif. */
   .avatar-pastille { width: 40px; height: 40px; }
