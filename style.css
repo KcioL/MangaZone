@@ -1165,9 +1165,27 @@ button, input { font: inherit; color: inherit; }
     -webkit-backdrop-filter: blur(16px);
   }
 
-  .onglet-bas.is-active {
-    background: rgba(217, 169, 76, 0.13);
+  /* Le fond de l'onglet actif n'est plus porté par le bouton mais par un
+     curseur unique qui glisse d'une position à l'autre. Un fond par bouton
+     ne pourrait pas s'animer d'un élément vers un autre. */
+  .barre-curseur {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 5px;
+    /* Un tiers de la largeur utile : 10 px de rembourrage, deux fois 4 px de
+       gouttière entre les trois boutons. */
+    width: calc((100% - 10px - 8px) / 3);
+    border-radius: 14px;
+    background: rgba(217, 169, 76, 0.14);
+    border: 1px solid rgba(217, 169, 76, 0.30);
+    pointer-events: none;
+    /* Le décalage vaut la largeur du curseur plus une gouttière. */
+    transform: translateX(calc(var(--onglet, 0) * (100% + 4px)));
+    transition: transform 0.34s cubic-bezier(0.34, 1.24, 0.5, 1);
   }
+
+  .onglet-bas { position: relative; }
   .wrap { padding: 26px 18px calc(112px + env(safe-area-inset-bottom, 0px)); }
   .toast { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
   .search-form { flex-direction: column; }

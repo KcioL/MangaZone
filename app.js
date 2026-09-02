@@ -5,7 +5,8 @@ import {
   EmailAuthProvider, reauthenticateWithCredential, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc,
+  initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  collection, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc,
   onSnapshot, arrayUnion, arrayRemove, query, orderBy,
   getAggregateFromServer, average, count
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -13,7 +14,16 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db   = getFirestore(app);
+
+/* Cache local persistant : la collection reste consultable et modifiable hors
+   ligne, les écritures partent au retour du réseau. Sans lui, l'application
+   installée afficherait une page vide dès la connexion perdue.
+
+   Le gestionnaire multi-onglets évite l'erreur qui survient quand le site est
+   ouvert deux fois : sans lui, un seul onglet obtient le cache. */
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 
 // Jikan (MyAnimeList). Contrairement à MangaDex, cette API envoie des en-têtes
 // CORS, donc elle est appelable directement depuis un navigateur.
@@ -602,6 +612,11 @@ function showView(name) {
     btn.classList.toggle("is-active", actif);
     btn.setAttribute("aria-current", actif ? "page" : "false");
   });
+
+  // Position du curseur glissant de la barre du bas : le CSS traduit ce rang
+  // en déplacement, et anime la transition.
+  const rang = ["discover", "collection", "succes"].indexOf(onglet);
+  document.querySelector(".barre-basse")?.style.setProperty("--onglet", rang);
 
   if (name !== "series") openSeriesId = null;
   window.scrollTo(0, 0);
@@ -1352,6 +1367,33 @@ $("delete-confirm").addEventListener("click", async () => {
   addEventListener("resize", auDefilement);
   majuster();
 })();
+
+/* ══════════════════ Application installable ══════════════════ */
+
+/* Le service worker garde la coque en cache : l'application s'ouvre
+   instantanément et survit à une coupure réseau. Il n'est disponible qu'en
+   HTTPS ou sur localhost — en ouvrant le fichier directement, rien ne se passe,
+   ce qui est sans conséquence. */
+if ("serviceWorker" in navigator) {
+  addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js")
+      .catch((err) => console.warn("Service worker non enregistré :", err.message));
+  });
+}
+
+/* Raccourcis du manifeste : ouvrir directement la collection ou les succès. */
+addEventListener("DOMContentLoaded", () => {
+  const vue = new URLSearchParams(location.search).get("vue");
+  if (!["collection", "succes"].includes(vue)) return;
+
+  // La vue ne peut s'afficher qu'une fois la session rétablie.
+  const attendre = setInterval(() => {
+    if (!currentUser) return;
+    clearInterval(attendre);
+    showView(vue);
+  }, 120);
+  setTimeout(() => clearInterval(attendre), 8000);
+});
 
 /* ══════════════════ Utilitaires ══════════════════ */
 
