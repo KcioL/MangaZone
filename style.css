@@ -637,7 +637,29 @@ button, input { font: inherit; color: inherit; }
 .succes-title { margin-top: 0; }
 .succes-head .progress { margin: 16px 0 0; }
 
-.succes-grid {
+.succes-groupe { margin-bottom: 44px; }
+
+.succes-groupe-titre {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin: 0 0 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.succes-groupe-titre span {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.succes-cartes {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
   gap: 16px;
@@ -789,7 +811,7 @@ button, input { font: inherit; color: inherit; }
   .auth-hero-note { display: none; }
   .empty-art { width: 200px; }
   .succes-art { display: none; }
-  .succes-grid { grid-template-columns: 1fr; }
+  .succes-cartes { grid-template-columns: 1fr; }
   .topbar { gap: 14px; padding: 14px 18px; }
   .topbar-right { width: 100%; margin-left: 0; gap: 14px; }
   .wrap { padding: 26px 18px 64px; }

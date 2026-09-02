@@ -255,25 +255,67 @@ const hideResetError = () => {
    par exemple après le retrait d'une série.
    ═════════════════════════════════════════════ */
 
+/* Les titres varient d'une source à l'autre : accents, ponctuation, casse.
+   On compare des formes normalisées plutôt que les libellés bruts. */
+const normaliser = (t) => t.toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-z0-9]/g, "");
+
+/* Deux questions différentes, deux fonctions.
+
+   Pour une série encore en cours comme One Piece, « complète » n'a aucun sens :
+   ce qui compte est le nombre de tomes réunis. Pour Naruto ou Bleach, qui sont
+   terminées, c'est l'inverse — et le total varie selon l'édition, donc un seuil
+   fixe serait faux. Mélanger les deux faisait débloquer « 200 tomes » à qui
+   complétait une édition de 110. */
+const trouver = (titres) => {
+  const cibles = titres.map(normaliser);
+  return collectionCache.filter((s) => cibles.includes(normaliser(s.title)));
+};
+
+const tomesDe   = (titres) => Math.max(0, ...trouver(titres).map((s) => s.owned.length));
+const completee = (titres) => trouver(titres).some(
+  (s) => s.totalVolumes > 0 && s.owned.length === s.totalVolumes) ? 1 : 0;
+
+const ONE_PIECE = ["One Piece"];
+const NARUTO    = ["Naruto"];
+const BLEACH    = ["Bleach"];
+
 const SUCCES = [
-  { id: "s1",  nom: "Première pierre",   texte: "Ajouter une première série",              palier: 1,   mesure: (b) => b.series },
-  { id: "s2",  nom: "Étagère garnie",    texte: "Suivre 5 séries",                         palier: 5,   mesure: (b) => b.series },
-  { id: "s3",  nom: "Bibliothécaire",    texte: "Suivre 15 séries",                        palier: 15,  mesure: (b) => b.series },
-  { id: "s4",  nom: "Archiviste",        texte: "Suivre 30 séries",                        palier: 30,  mesure: (b) => b.series },
+  // ── Progression ───────────────────────────────────────────
+  { g: "Progression", id: "s1", nom: "Première pierre",     texte: "Ajouter une première série",                 palier: 1,   mesure: (b) => b.series },
+  { g: "Progression", id: "s2", nom: "Étagère garnie",      texte: "Suivre 5 séries",                            palier: 5,   mesure: (b) => b.series },
+  { g: "Progression", id: "s3", nom: "Bibliothécaire",      texte: "Suivre 15 séries",                           palier: 15,  mesure: (b) => b.series },
+  { g: "Progression", id: "s4", nom: "Archiviste",          texte: "Suivre 30 séries",                           palier: 30,  mesure: (b) => b.series },
 
-  { id: "t1",  nom: "Premier tome",      texte: "Posséder un premier tome",                palier: 1,   mesure: (b) => b.tomes },
-  { id: "t2",  nom: "Petite pile",       texte: "Posséder 10 tomes",                       palier: 10,  mesure: (b) => b.tomes },
-  { id: "t3",  nom: "Vraie collection",  texte: "Posséder 50 tomes",                       palier: 50,  mesure: (b) => b.tomes },
-  { id: "t4",  nom: "Mur de manga",      texte: "Posséder 100 tomes",                      palier: 100, mesure: (b) => b.tomes },
-  { id: "t5",  nom: "Fonds de dotation", texte: "Posséder 250 tomes",                      palier: 250, mesure: (b) => b.tomes },
+  { g: "Progression", id: "t1", nom: "Premier tome",        texte: "Posséder un premier tome",                   palier: 1,   mesure: (b) => b.tomes },
+  { g: "Progression", id: "t2", nom: "Petite pile",         texte: "Posséder 10 tomes",                          palier: 10,  mesure: (b) => b.tomes },
+  { g: "Progression", id: "t3", nom: "Vraie collection",    texte: "Posséder 50 tomes",                          palier: 50,  mesure: (b) => b.tomes },
+  { g: "Progression", id: "t4", nom: "Mur de manga",        texte: "Posséder 100 tomes",                         palier: 100, mesure: (b) => b.tomes },
+  { g: "Progression", id: "t5", nom: "Fonds de dotation",   texte: "Posséder 250 tomes",                         palier: 250, mesure: (b) => b.tomes },
+  { g: "Progression", id: "t6", nom: "Rayonnage complet",   texte: "Posséder 500 tomes",                         palier: 500, mesure: (b) => b.tomes },
 
-  { id: "c1",  nom: "Bouclée",           texte: "Compléter une série",                     palier: 1,   mesure: (b) => b.completes },
-  { id: "c2",  nom: "Perfectionniste",   texte: "Compléter 5 séries",                      palier: 5,   mesure: (b) => b.completes },
-  { id: "c3",  nom: "Intégraliste",      texte: "Compléter 10 séries",                     palier: 10,  mesure: (b) => b.completes },
+  { g: "Progression", id: "c1", nom: "Bouclée",             texte: "Compléter une série",                        palier: 1,   mesure: (b) => b.completes },
+  { g: "Progression", id: "c2", nom: "Perfectionniste",     texte: "Compléter 5 séries",                         palier: 5,   mesure: (b) => b.completes },
+  { g: "Progression", id: "c3", nom: "Intégraliste",        texte: "Compléter 10 séries",                        palier: 10,  mesure: (b) => b.completes },
+  { g: "Progression", id: "c4", nom: "Sans une lacune",     texte: "Compléter 20 séries",                        palier: 20,  mesure: (b) => b.completes },
 
-  { id: "l1",  nom: "Longue haleine",    texte: "Compléter une série de 20 tomes ou plus", palier: 1,   mesure: (b) => b.longuesCompletes },
-  { id: "e1",  nom: "Sur tous les fronts", texte: "Avoir 5 séries commencées mais inachevées", palier: 5, mesure: (b) => b.enCours },
-  { id: "m1",  nom: "Moitié du chemin",  texte: "Posséder la moitié de tous les tomes suivis", palier: 50, mesure: (b) => b.pourcentage }
+  { g: "Progression", id: "l1", nom: "Longue haleine",      texte: "Compléter une série de 20 tomes ou plus",    palier: 1,   mesure: (b) => b.longuesCompletes },
+  { g: "Progression", id: "l2", nom: "Souffle infini",      texte: "Compléter une série de 50 tomes ou plus",    palier: 1,   mesure: (b) => b.tresLonguesCompletes },
+  { g: "Progression", id: "e1", nom: "Sur tous les fronts", texte: "Avoir 5 séries commencées mais inachevées",  palier: 5,   mesure: (b) => b.enCours },
+  { g: "Progression", id: "f1", nom: "Fondations",          texte: "Posséder le tome 1 de 10 séries",            palier: 10,  mesure: (b) => b.premiersTomes },
+  { g: "Progression", id: "m1", nom: "Moitié du chemin",    texte: "Posséder la moitié de tous les tomes suivis", palier: 50,  mesure: (b) => b.pourcentage },
+  { g: "Progression", id: "m2", nom: "Aucun trou",          texte: "Posséder 100 % des tomes, sur 3 séries au moins", palier: 1, mesure: (b) => b.sansTrou },
+
+  // ── Séries mythiques ──────────────────────────────────────
+  { g: "Séries mythiques", id: "b1", nom: "Sur la Grand Line", texte: "Réunir 50 tomes de One Piece",               palier: 50,  mesure: (b) => b.tomesOnePiece },
+  { g: "Séries mythiques", id: "b2", nom: "Roi des pirates",   texte: "Réunir 100 tomes de One Piece",              palier: 100, mesure: (b) => b.tomesOnePiece },
+  { g: "Séries mythiques", id: "b3", nom: "Hokage",            texte: "Compléter Naruto",                           palier: 1,   mesure: (b) => b.naruto },
+  { g: "Séries mythiques", id: "b4", nom: "Shinigami",         texte: "Compléter Bleach",                           palier: 1,   mesure: (b) => b.bleach },
+  { g: "Séries mythiques", id: "b5", nom: "Le Big 3",          texte: "One Piece à 100 tomes, Naruto et Bleach complets", palier: 3, mesure: (b) => b.big3 },
+  { g: "Séries mythiques", id: "b8", nom: "À jour",            texte: "Posséder tous les tomes parus de One Piece", palier: 1,   mesure: (b) => b.onePieceAJour },
+  { g: "Séries mythiques", id: "b6", nom: "Cahier noir",       texte: "Compléter une édition de Death Note",        palier: 1,   mesure: (b) => b.deathNote },
+  { g: "Séries mythiques", id: "b7", nom: "Trois piliers",     texte: "Suivre les trois séries du Big 3",           palier: 3,   mesure: (b) => b.big3Suivies }
 ];
 
 let succesConnus = null;    // null tant que la première lecture n'a pas eu lieu
@@ -284,13 +326,33 @@ function bilan() {
   const total     = collectionCache.reduce((n, s) => n + s.totalVolumes, 0);
   const completes = collectionCache.filter((s) => s.owned.length === s.totalVolumes).length;
 
+  const tomesOnePiece = tomesDe(ONE_PIECE);
+  const naruto = completee(NARUTO);
+  const bleach = completee(BLEACH);
+
   return {
     series, tomes, completes,
+
     longuesCompletes: collectionCache.filter(
       (s) => s.totalVolumes >= 20 && s.owned.length === s.totalVolumes).length,
+    tresLonguesCompletes: collectionCache.filter(
+      (s) => s.totalVolumes >= 50 && s.owned.length === s.totalVolumes).length,
     enCours: collectionCache.filter(
       (s) => s.owned.length > 0 && s.owned.length < s.totalVolumes).length,
-    pourcentage: total ? Math.round((tomes / total) * 100) : 0
+    premiersTomes: collectionCache.filter((s) => s.owned.includes("1")).length,
+
+    pourcentage: total ? Math.round((tomes / total) * 100) : 0,
+    sansTrou: series >= 3 && total > 0 && tomes === total ? 1 : 0,
+
+    tomesOnePiece,
+    onePieceAJour: completee(ONE_PIECE),
+    naruto,
+    bleach,
+    big3: (tomesOnePiece >= 100 ? 1 : 0) + naruto + bleach,
+    big3Suivies: [ONE_PIECE, NARUTO, BLEACH].filter((t) => trouver(t).length).length,
+    deathNote: collectionCache.filter(
+      (s) => normaliser(s.title).startsWith("deathnote")
+          && s.totalVolumes > 0 && s.owned.length === s.totalVolumes).length
   };
 }
 
@@ -307,13 +369,33 @@ function renderSucces() {
   $("succes-resume").textContent = `${obtenus.length} succès sur ${SUCCES.length}`;
   $("succes-bar").style.width = `${Math.round((obtenus.length / SUCCES.length) * 100)}%`;
 
-  $("succes-liste").innerHTML = etat.map((s) => `
-    <article class="succes ${s.debloque ? "is-done" : ""}">
-      <span class="succes-marque">${s.debloque ? "✦" : ""}</span>
-      <h3 class="succes-nom">${escapeHtml(s.nom)}</h3>
-      <p class="succes-texte">${escapeHtml(s.texte)}</p>
-      <p class="succes-jauge">${s.debloque ? "Débloqué" : `${s.valeur} / ${s.palier}`}</p>
-    </article>`).join("");
+  // Groupés dans l'ordre d'apparition du catalogue.
+  const groupes = [];
+  etat.forEach((s) => {
+    let g = groupes.find((x) => x.nom === s.g);
+    if (!g) groupes.push(g = { nom: s.g, items: [] });
+    g.items.push(s);
+  });
+
+  $("succes-liste").innerHTML = groupes.map((g) => {
+    const faits = g.items.filter((s) => s.debloque).length;
+    return `
+      <section class="succes-groupe">
+        <h3 class="succes-groupe-titre">
+          ${escapeHtml(g.nom)}
+          <span>${faits} / ${g.items.length}</span>
+        </h3>
+        <div class="succes-cartes">
+          ${g.items.map((s) => `
+            <article class="succes ${s.debloque ? "is-done" : ""}">
+              <span class="succes-marque">${s.debloque ? "✦" : ""}</span>
+              <h4 class="succes-nom">${escapeHtml(s.nom)}</h4>
+              <p class="succes-texte">${escapeHtml(s.texte)}</p>
+              <p class="succes-jauge">${s.debloque ? "Débloqué" : `${s.valeur} / ${s.palier}`}</p>
+            </article>`).join("")}
+        </div>
+      </section>`;
+  }).join("");
 
   // Signaler les nouveaux succès, mais pas au premier chargement : tout
   // paraîtrait débloqué à l'instant.
