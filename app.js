@@ -394,10 +394,22 @@ async function noter(serieId, note) {
   if (openSeriesId === serieId) renderDetail();
 }
 
+const chiffreNote = (v) => v.toFixed(1).replace(".", ",");
+
+/* Version simple, pour les vignettes de la collection. */
 const texteNote = (n) =>
   n.moyenne === null
     ? "Pas encore noté"
-    : `${n.moyenne.toFixed(1)} / 10 · ${n.nombre} ${n.nombre > 1 ? "avis" : "avis"}`;
+    : `${chiffreNote(n.moyenne)} / 10 · ${n.nombre} avis`;
+
+/* Version balisée, pour la vue détail : la moyenne y est mise en valeur et
+   le reste passe au second plan. */
+const htmlNote = (n) =>
+  n.moyenne === null
+    ? `<span class="note-vide">Pas encore noté</span>`
+    : `<span class="note-chiffre">${chiffreNote(n.moyenne)}</span>`
+    + `<span class="note-sur">/ 10</span>`
+    + `<span class="note-avis">${n.nombre} avis</span>`;
 
 /* ══════════════════ Succès ══════════════════
 
@@ -1102,13 +1114,16 @@ async function rendreNotes(serieId) {
 
   const dessiner = (n) => {
     if (openSeriesId !== serieId) return;   // la personne a changé de page
-    $("detail-note").textContent = texteNote(n);
+    $("detail-note").innerHTML = htmlNote(n);
 
     zone.innerHTML = "";
     for (let i = 1; i <= 10; i++) {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = `note-btn ${n.mienne === i ? "is-active" : ""}`;
+      const atteint = n.mienne !== null && i <= n.mienne;
+      b.className = "note-btn"
+        + (atteint ? " is-atteint" : "")
+        + (n.mienne === i ? " is-active" : "");
       b.textContent = i;
       b.setAttribute("aria-pressed", n.mienne === i);
       b.title = n.mienne === i ? "Cliquer pour retirer ta note" : `Noter ${i} sur 10`;
@@ -1118,7 +1133,9 @@ async function rendreNotes(serieId) {
 
     const info = document.createElement("span");
     info.className = "note-mienne";
-    info.textContent = n.mienne ? `Ta note : ${n.mienne}` : "Tu n'as pas encore noté";
+    info.textContent = n.mienne
+      ? `Ta note : ${n.mienne} sur 10 — clique à nouveau dessus pour la retirer`
+      : "Tu n'as pas encore noté cette série";
     zone.appendChild(info);
   };
 

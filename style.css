@@ -683,6 +683,101 @@ button, input { font: inherit; color: inherit; }
 
 .progress span { display: block; height: 100%; background: var(--brass); }
 
+/* ── Notes ────────────────────────────────── */
+
+.note-ligne {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 18px 0 12px;
+}
+
+/* La moyenne est le chiffre qui compte : elle reprend la police d'affichage
+   et la couleur laiton, comme les compteurs de la page Succès. */
+.note-chiffre {
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.note-sur   { font-size: 0.92rem; color: var(--muted); }
+
+.note-avis {
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+
+.note-vide {
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.note-choix {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 18px;
+  max-width: 460px;
+}
+
+.note-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.note-btn:hover {
+  border-color: var(--brass);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+
+/* Les cases jusqu'à la note choisie se teintent : la rangée se lit comme une
+   jauge remplie, et non comme dix cases indépendantes. */
+.note-btn.is-atteint {
+  background: rgba(217, 169, 76, 0.13);
+  border-color: rgba(217, 169, 76, 0.42);
+  color: var(--text);
+}
+
+/* La case retenue reprend exactement l'aspect d'un tome possédé. */
+.note-btn.is-active {
+  background: linear-gradient(160deg, var(--brass), var(--brass-dk));
+  border-color: var(--brass);
+  color: #1A1520;
+  font-weight: 600;
+}
+
+/* Passe à la ligne sous les boutons plutôt que de les serrer sur le côté. */
+.note-mienne {
+  flex-basis: 100%;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Sur les cartes de la collection */
+.poster-note {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--brass);
+  margin-top: 2px;
+  min-height: 1.2em;      /* réserve la place avant l'arrivée de la moyenne */
+}
+
 .filters { display: flex; gap: 8px; margin-bottom: 26px; }
 
 .filter {
@@ -967,10 +1062,16 @@ button, input { font: inherit; color: inherit; }
   .poster-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 20px 12px; }
   .volumes { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 9px; }
   .vol-num { font-size: 1.3rem; }
+  .note-choix { display: grid; grid-template-columns: repeat(5, 1fr); max-width: 280px; }
+  .note-btn { width: 100%; }
+  .note-mienne { grid-column: 1 / -1; }
+  .note-chiffre { font-size: 1.8rem; }
   .detail-head { gap: 18px; }
   .detail-cover { width: 104px; }
   .series-title { font-size: 1.6rem; }
   .stats { gap: 24px; }
+  .note-btn { width: 30px; height: 30px; font-size: 0.8rem; }
+  .note-mienne { margin-left: 0; width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
