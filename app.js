@@ -291,7 +291,7 @@ const EDITIONS_VF = [
     id: "vf-death-note-black-edition",
     title: "Death Note — Black Edition",
     volumes: 6,
-    source: "Death Note",
+    cover: "covers/death-note-black-edition.jpg",
     note: "Réédition en 6 tomes doubles"
   }
 ];
@@ -511,17 +511,30 @@ async function addSeries(serie) {
     throw new Error("total invalide");
   }
 
-  await setDoc(doc(db, "users", currentUser.uid, "series", serie.id), {
-    id: serie.id,
-    title: serie.title,
-    cover: serie.cover || "",
-    totalVolumes: total,
-    owned: [],
-    addedAt: Date.now()
-  });
-
-  // La page de la série s'ouvrira dès que Firestore aura confirmé l'écriture.
+  // À poser AVANT l'écriture : Firestore déclenche onSnapshot localement dès
+  // que la donnée est mise en file, souvent avant que setDoc soit résolu.
   ouvrirApresAjout = serie.id;
+
+  try {
+    await setDoc(doc(db, "users", currentUser.uid, "series", serie.id), {
+      id: serie.id,
+      title: serie.title,
+      cover: serie.cover || "",
+      totalVolumes: total,
+      owned: [],
+      addedAt: Date.now()
+    });
+  } catch (err) {
+    ouvrirApresAjout = null;
+    throw err;
+  }
+
+  // Filet de sécurité si l'instantané est déjà passé entre-temps.
+  if (ouvrirApresAjout === serie.id
+      && collectionCache.some((s) => s.id === serie.id)) {
+    ouvrirApresAjout = null;
+    openSeries(serie.id);
+  }
 }
 
 /* ══════════════════ Éditions françaises ══════════════════ */
@@ -531,12 +544,16 @@ async function loadEditions() {
   grid.innerHTML = "";
 
   for (const edition of EDITIONS_VF) {
-    // La couverture vient de la série d'origine, cherchée à l'affichage.
-    let cover = "";
-    try {
-      const trouvees = await chercherSeries(edition.source);
-      cover = trouvees[0]?.cover || "";
-    } catch { /* la carte reste utilisable sans image */ }
+    // L'image est un fichier du dépôt : rien à aller chercher en ligne, et
+    // aucun risque de lien mort.
+    let cover = edition.cover || "";
+
+    if (!cover && edition.source) {
+      try {
+        const trouvees = await chercherSeries(edition.source);
+        cover = trouvees[0]?.cover || "";
+      } catch { /* la carte reste utilisable sans image */ }
+    }
 
     grid.appendChild(suggestionCard({
       id: edition.id,
