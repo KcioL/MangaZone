@@ -6,7 +6,7 @@
 
    Changer VERSION suffit à forcer le renouvellement de tous les fichiers. */
 
-const VERSION = "mangazone-v1";
+const VERSION = "mangazone-v2";
 
 const COQUE = [
   "./",
@@ -51,10 +51,41 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const req = e.request;
 
-  // Firebase, AniList, Google Fonts : jamais interceptés. Ces échanges doivent
-  // rester frais, et Firestore a besoin de sa propre connexion persistante.
   if (req.method !== "GET") return;
-  if (new URL(req.url).origin !== self.location.origin) return;
+
+  const url = new URL(req.url);
+
+  /* Les bibliothèques servies par Google — SDK Firebase et polices — sont sur
+     un autre domaine, mais elles sont indispensables au démarrage. Sans elles
+     en cache, l'import du module échoue hors ligne et aucune ligne de app.js
+     ne s'exécute : on voit le fond du site, et rien d'autre.
+
+     Elles sont versionnées dans leur URL, donc jamais périmées : le cache
+     d'abord est ici sans risque. */
+  const BIBLIOTHEQUES = [
+    "www.gstatic.com",        // SDK Firebase
+    "fonts.googleapis.com",   // feuille de style des polices
+    "fonts.gstatic.com"       // fichiers de polices
+  ];
+
+  if (BIBLIOTHEQUES.includes(url.hostname)) {
+    e.respondWith(
+      caches.match(req).then((cache) => cache || fetch(req).then((rep) => {
+        // Une réponse opaque ne peut pas être relue : on ne garde que les vraies.
+        if (rep.ok) {
+          const copie = rep.clone();
+          caches.open(VERSION).then((c) => c.put(req, copie));
+        }
+        return rep;
+      }))
+    );
+    return;
+  }
+
+  /* Les échanges de données restent toujours en direct : authentification,
+     Firestore, AniList. Les mettre en cache donnerait des réponses périmées,
+     et Firestore gère lui-même son mode hors ligne. */
+  if (url.origin !== self.location.origin) return;
 
   // Pour la page elle-même : le réseau d'abord, afin qu'une mise en ligne soit
   // prise en compte immédiatement ; le cache sert de filet hors ligne.
