@@ -1053,19 +1053,29 @@ $("manual-fichier").addEventListener("change", async (e) => {
     $("manual-apercu").hidden = false;
     $("manual-retirer").hidden = false;
     $("manual-cover").value = "";            // le fichier prime sur le lien
+    zoneImage("Remplacer l'image", "Une autre photo ou capture");
     toast(`Image prête (${Math.round(couvertureLocale.length / 1024)} Ko).`);
   } catch (err) {
-    couvertureLocale = null;
+    reinitialiserImage();
     toast(`Image refusée : ${err.message}.`);
   }
 });
 
-$("manual-retirer").addEventListener("click", () => {
+$("manual-retirer").addEventListener("click", reinitialiserImage);
+
+/* La zone annonce ce qu'un clic va faire : ajouter, ou remplacer. */
+function zoneImage(titre, note) {
+  document.querySelector(".zone-image-titre").textContent = titre;
+  document.querySelector(".zone-image-note").textContent  = note;
+}
+
+function reinitialiserImage() {
   couvertureLocale = null;
   $("manual-fichier").value = "";
   $("manual-apercu").hidden = true;
   $("manual-retirer").hidden = true;
-});
+  zoneImage("Choisir une image", "Photo ou capture depuis ton appareil");
+}
 
 $("manual-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -1093,9 +1103,7 @@ $("manual-form").addEventListener("submit", async (e) => {
   try {
     await addSeries({ id, title, cover, volumes: total });
     $("manual-form").reset();
-    couvertureLocale = null;
-    $("manual-apercu").hidden = true;
-    $("manual-retirer").hidden = true;
+    reinitialiserImage();
     document.querySelector(".manual").open = false;
     toast(`${title} est dans ta collection.`);
   } catch {

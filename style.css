@@ -590,44 +590,70 @@ button, input { font: inherit; color: inherit; }
 
 .manual-image {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .manual-apercu {
-  width: 78px;
+  width: 104px;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: var(--radius);
-  border: 1px solid var(--line);
+  border: 1px solid var(--brass);
   background: var(--raised);
 }
 
-.manual-image-actions {
+/* Le champ de fichier natif est masqué : son apparence n'est pas modifiable et
+   jurerait avec le reste. Le label le remplace et déclenche le même
+   comportement, y compris au clavier.
+
+   Il occupe toute la largeur et se présente en cadre pointillé : c'est l'action
+   principale du formulaire, elle doit se voir au premier coup d'œil. Le lien
+   bordé précédent se confondait avec le texte d'aide. */
+.zone-image {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding-top: 4px;
-}
-
-/* Le champ de fichier natif est masqué : son apparence n'est pas modifiable
-   et jurerait avec le reste. Le label sert de bouton et déclenche le même
-   comportement, y compris au clavier. */
-.faux-bouton {
-  display: inline-block;
-  border: 1px solid var(--brass);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 104px;
+  padding: 18px 16px;
+  border: 1.5px dashed rgba(217, 169, 76, 0.55);
+  border-radius: 10px;
+  background: rgba(217, 169, 76, 0.06);
   color: var(--brass);
-  border-radius: var(--radius);
-  padding: 8px 16px;
-  font-size: 0.88rem;
   cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.faux-bouton:hover { background: var(--brass); color: #1A1520; }
+.zone-image:hover {
+  background: rgba(217, 169, 76, 0.12);
+  border-color: var(--brass);
+}
 
-#manual-fichier:focus-visible + .faux-bouton {
+.zone-image svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.zone-image-titre { font-weight: 600; font-size: 0.94rem; }
+
+.zone-image-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+#manual-fichier:focus-visible + .zone-image {
   outline: 2px solid var(--brass);
   outline-offset: 2px;
 }
@@ -1186,6 +1212,10 @@ button, input { font: inherit; color: inherit; }
      palier précédent — côte à côte, les deux seraient à l'étroit. */
   .succes-art { width: 150px; height: 150px; }
   .succes-cartes { grid-template-columns: 1fr; }
+  .zone-image { min-height: 124px; padding: 22px 16px; }
+  .zone-image svg { width: 30px; height: 30px; }
+  .zone-image-titre { font-size: 1rem; }
+  .manual-apercu { width: 124px; }
   /* En haut, l'identité seule ; la navigation descend en bas d'écran, à portée
      de pouce, comme dans les applications mobiles.
 
