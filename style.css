@@ -1,10 +1,3 @@
-/* ═══════════════════════════════════════════════════════════
-   MangaZone — thème sombre
-   Base encre-aubergine, accent laiton. Le laiton signale ce que
-   l'on possède ; tout le reste du site reste sourd pour que les
-   tomes cochés soient la seule chose qui brille.
-   ═══════════════════════════════════════════════════════════ */
-
 :root {
   --bg:       #17141F;
   --surface:  #201C2B;
@@ -21,8 +14,6 @@
   --font-body:    "Figtree", "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Une classe comme .field { display: flex } écrase la règle par défaut du
-   navigateur pour [hidden]. Sans cette ligne, les éléments masqués restent visibles. */
 [hidden] { display: none !important; }
 
 * { box-sizing: border-box; }
@@ -58,21 +49,12 @@ button, input { font: inherit; color: inherit; }
 
 ::selection { background: var(--brass); color: var(--bg); }
 
-/* ── Fond animé ───────────────────────────────────────────────
-   Un large halo laiton qui traverse toute la page au fil du défilement,
-   du coin haut gauche vers le coin bas droit.
-
-   --defile vaut 0 en haut de page et 1 en bas ; app.js la met à jour une
-   fois par image au maximum.
-   ─────────────────────────────────────────────────────────── */
-
 @property --defile {
   syntax: "<number>";
   initial-value: 0;
   inherits: true;
 }
 
-/* Position du halo, en unités de fenêtre. Calculées dans app.js. */
 @property --halo-x {
   syntax: "<number>";
   initial-value: 0;
@@ -89,16 +71,10 @@ button, input { font: inherit; color: inherit; }
   position: fixed;
   inset: 0;
   z-index: -1;
-  pointer-events: none;   /* le décor ne doit intercepter aucun clic */
+  pointer-events: none;
   overflow: hidden;
 }
 
-/* Deux mouvements superposés, d'où les deux éléments imbriqués.
-
-   La piste porte une dérive lente et continue, qui vit même à l'arrêt.
-   Le halo porte le déplacement lié au défilement. Les deux ne peuvent pas
-   cohabiter sur un seul élément : une animation CSS et une valeur calculée
-   se disputeraient la propriété `transform`. */
 .halo-piste {
   position: absolute;
   inset: 0;
@@ -106,13 +82,6 @@ button, input { font: inherit; color: inherit; }
   animation: derive 26s ease-in-out infinite alternate;
 }
 
-/* Le halo serpente du haut vers le bas de la page. Sa position vient de deux
-   variables calculées dans app.js ; elles sont multipliées ici par 1vw et 1vh,
-   si bien que la trajectoire s'adapte à toutes les tailles de fenêtre.
-
-   Les variables ne pilotent que `transform` et `opacity`. Dans le canal alpha
-   d'une couleur, elles rendraient la déclaration invalide et feraient
-   disparaître le dégradé entier. */
 .halo {
   position: absolute;
   display: block;
@@ -139,11 +108,8 @@ button, input { font: inherit; color: inherit; }
   to   { transform: translate( 52px,  26px); }
 }
 
-/* ── Identité ─────────────────────────────── */
-
 .brand { display: flex; align-items: center; gap: 11px; }
 
-/* Le logo, à gauche du nom. Carré arrondi : il porte déjà sa propre tuile. */
 .brand-mark {
   width: 40px;
   height: 40px;
@@ -152,7 +118,6 @@ button, input { font: inherit; color: inherit; }
   flex-shrink: 0;
 }
 
-/* L'avatar de la personne connectée, à droite près du pseudo. */
 .avatar-pastille {
   width: 30px;
   height: 30px;
@@ -172,8 +137,6 @@ button, input { font: inherit; color: inherit; }
   color: var(--text);
   white-space: nowrap;
 }
-
-/* ── Boutons ──────────────────────────────── */
 
 .btn-primary {
   background: var(--brass);
@@ -216,8 +179,6 @@ button, input { font: inherit; color: inherit; }
 .btn-danger:hover { background: var(--rose); color: #1A1520; }
 .btn-danger:disabled { opacity: 0.45; cursor: default; background: none; color: var(--rose); }
 
-/* ── Connexion ────────────────────────────── */
-
 .auth-screen {
   min-height: 100vh;
   display: grid;
@@ -225,7 +186,6 @@ button, input { font: inherit; color: inherit; }
   padding: 24px;
 }
 
-/* L'illustration et le formulaire forment un seul bloc centré. */
 .auth-layout {
   display: flex;
   align-items: center;
@@ -312,8 +272,6 @@ button, input { font: inherit; color: inherit; }
 .auth-forgot { margin: 14px 0 0; font-size: 0.86rem; text-align: center; }
 .auth-switch { margin: 22px 0 0; font-size: 0.88rem; color: var(--muted); }
 
-/* ── Choix d'avatar ───────────────────────── */
-
 .avatar-choix {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -329,7 +287,6 @@ button, input { font: inherit; color: inherit; }
   cursor: pointer;
   aspect-ratio: 1;
   overflow: hidden;
-  /* Les avatars non retenus s'effacent pour que la sélection saute aux yeux. */
   opacity: 0.5;
   transition: opacity 0.15s, border-color 0.15s;
 }
@@ -353,8 +310,6 @@ button, input { font: inherit; color: inherit; }
   gap: 14px;
   margin-bottom: 26px;
 }
-
-/* ── Barre du haut ────────────────────────── */
 
 .topbar {
   display: flex;
@@ -380,9 +335,6 @@ button, input { font: inherit; color: inherit; }
   cursor: pointer;
 }
 
-/* Sans `fill: none`, un SVG se remplit en noir par défaut et les icônes
-   deviennent des taches pleines. Le trait suit la couleur du texte, si bien
-   que l'onglet actif colore icône et libellé d'un seul coup. */
 .tab-icone {
   width: 19px;
   height: 19px;
@@ -420,9 +372,6 @@ button, input { font: inherit; color: inherit; }
   padding: 36px 28px 96px;
 }
 
-/* ── Barre de navigation basse (mobile) ───── */
-
-/* Masquée par défaut : sur grand écran, les onglets du haut suffisent. */
 .barre-basse { display: none; }
 
 .onglet-bas {
@@ -432,7 +381,6 @@ button, input { font: inherit; color: inherit; }
   align-items: center;
   justify-content: center;
   gap: 4px;
-  /* 54 px de haut : au-dessus du minimum recommandé pour une cible tactile. */
   min-height: 54px;
   padding: 8px 0;
   border-radius: 14px;
@@ -456,8 +404,6 @@ button, input { font: inherit; color: inherit; }
 .onglet-bas.is-active { color: var(--brass); }
 .onglet-bas.is-active svg { stroke-width: 2; }
 
-/* ── Découvrir ────────────────────────────── */
-
 .app-intro {
   color: var(--muted);
   font-size: 0.97rem;
@@ -479,8 +425,6 @@ button, input { font: inherit; color: inherit; }
 .search-form input::placeholder { color: #6C6478; }
 .search-form input:focus { border-color: var(--brass); outline: none; }
 
-/* Signal discret pendant la requête : une barre qui court sous le champ.
-   Un texte « chargement » clignoterait à chaque lettre. */
 .search-form input.is-searching {
   background-image: linear-gradient(90deg, transparent, var(--brass), transparent);
   background-size: 40% 2px;
@@ -534,7 +478,6 @@ button, input { font: inherit; color: inherit; }
 
 .result-year { font-size: 0.82rem; color: var(--muted); }
 
-/* Recherche infructueuse : le message et l'échappatoire sur la même ligne. */
 .result-vide {
   display: flex;
   flex-wrap: wrap;
@@ -585,7 +528,7 @@ button, input { font: inherit; color: inherit; }
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 22px;
+  padding: 16px;
   cursor: pointer;
   transition: background 0.15s;
   list-style: none;
@@ -594,9 +537,6 @@ button, input { font: inherit; color: inherit; }
 .manual summary::-webkit-details-marker { display: none; }
 .manual summary:hover { background: rgba(217, 169, 76, 0.08); }
 
-/* Icône du bloc, dans une pastille laiton pour accrocher l'œil. Sans
-   `fill: none`, un SVG se remplit en noir et devient une tache illisible :
-   c'était le cas ici, ce qui rendait tout le bloc terne. */
 .manual-icone {
   flex-shrink: 0;
   box-sizing: content-box;
@@ -613,7 +553,6 @@ button, input { font: inherit; color: inherit; }
   stroke-linejoin: round;
 }
 
-/* Chevron d'ouverture, qui pivote quand le bloc se déplie. */
 .manual-chevron {
   flex-shrink: 0;
   margin-left: auto;
@@ -635,12 +574,20 @@ button, input { font: inherit; color: inherit; }
 
 .manual[open] .manual-chevron svg { transform: rotate(180deg); }
 
-.manual-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.manual-texte { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 2px; 
+  min-width: 0; 
+  flex: 1; 
+}
 
 .manual-titre {
   color: var(--text);
   font-weight: 600;
   font-size: 1.04rem;
+  line-height: 1.3;
+  white-space: normal; 
 }
 
 .manual-note {
@@ -649,19 +596,6 @@ button, input { font: inherit; color: inherit; }
   line-height: 1.35;
 }
 
-/* Chevron dessiné en CSS : deux bords d'un carré tourné à 45°. */
-.manual-fleche {
-  flex-shrink: 0;
-  margin-left: auto;
-  width: 9px;
-  height: 9px;
-  border-right: 2px solid var(--brass);
-  border-bottom: 2px solid var(--brass);
-  transform: rotate(45deg);
-  transition: transform 0.2s;
-}
-
-.manual[open] .manual-fleche { transform: rotate(-135deg); }
 .manual[open] summary { border-bottom: 1px solid var(--line); }
 
 .manual-form {
@@ -688,13 +622,6 @@ button, input { font: inherit; color: inherit; }
   background: var(--raised);
 }
 
-/* Le champ de fichier natif est masqué : son apparence n'est pas modifiable et
-   jurerait avec le reste. Le label le remplace et déclenche le même
-   comportement, y compris au clavier.
-
-   Il occupe toute la largeur et se présente en cadre pointillé : c'est l'action
-   principale du formulaire, elle doit se voir au premier coup d'œil. Le lien
-   bordé précédent se confondait avec le texte d'aide. */
 .zone-image {
   display: flex;
   flex-direction: column;
@@ -741,8 +668,6 @@ button, input { font: inherit; color: inherit; }
   outline-offset: 2px;
 }
 
-/* ── Grille d'affiches ────────────────────── */
-
 .poster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
@@ -778,7 +703,6 @@ button, input { font: inherit; color: inherit; }
 
 .poster:hover .poster-img { box-shadow: 0 0 0 2px var(--brass); }
 
-/* Affiché à la place d'une couverture introuvable. */
 .cover-fallback {
   position: absolute;
   inset: 0;
@@ -832,8 +756,6 @@ button, input { font: inherit; color: inherit; }
   border-radius: 2px;
 }
 
-/* ── Chiffres ─────────────────────────────── */
-
 .stats {
   display: flex;
   gap: 40px;
@@ -854,8 +776,6 @@ button, input { font: inherit; color: inherit; }
   color: var(--brass);
   margin-right: 8px;
 }
-
-/* ── Détail d'une série ───────────────────── */
 
 .back-link { margin-bottom: 28px; display: inline-block; }
 
@@ -906,8 +826,6 @@ button, input { font: inherit; color: inherit; }
 
 .progress span { display: block; height: 100%; background: var(--brass); }
 
-/* ── Notes ────────────────────────────────── */
-
 .note-ligne {
   display: flex;
   align-items: baseline;
@@ -915,8 +833,6 @@ button, input { font: inherit; color: inherit; }
   margin: 18px 0 12px;
 }
 
-/* La moyenne est le chiffre qui compte : elle reprend la police d'affichage
-   et la couleur laiton, comme les compteurs de la page Succès. */
 .note-chiffre {
   font-family: var(--font-display);
   font-size: 2.1rem;
@@ -968,15 +884,12 @@ button, input { font: inherit; color: inherit; }
   transform: translateY(-2px);
 }
 
-/* Les cases jusqu'à la note choisie se teintent : la rangée se lit comme une
-   jauge remplie, et non comme dix cases indépendantes. */
 .note-btn.is-atteint {
   background: rgba(217, 169, 76, 0.13);
   border-color: rgba(217, 169, 76, 0.42);
   color: var(--text);
 }
 
-/* La case retenue reprend exactement l'aspect d'un tome possédé. */
 .note-btn.is-active {
   background: linear-gradient(160deg, var(--brass), var(--brass-dk));
   border-color: var(--brass);
@@ -984,7 +897,6 @@ button, input { font: inherit; color: inherit; }
   font-weight: 600;
 }
 
-/* Passe à la ligne sous les boutons plutôt que de les serrer sur le côté. */
 .note-mienne {
   flex-basis: 100%;
   margin-top: 4px;
@@ -992,19 +904,14 @@ button, input { font: inherit; color: inherit; }
   color: var(--muted);
 }
 
-/* Sur les cartes de la collection */
 .poster-note {
   display: block;
   font-size: 0.78rem;
   color: var(--brass);
   margin-top: 3px;
-  /* Hauteur réservée d'avance : les moyennes arrivent après l'affichage de la
-     grille, et sans cette réserve les cartes sursauteraient à leur arrivée. */
   min-height: 1.2em;
 }
 
-/* Sur les suggestions, la ligne reste vide tant que personne n'a noté :
-   on ne réserve donc pas de place inutile sous chaque couverture. */
 #suggestions .poster-note,
 #editions .poster-note {
   min-height: 0;
@@ -1036,8 +943,6 @@ button, input { font: inherit; color: inherit; }
   font-weight: 500;
 }
 
-/* ── Les tomes ────────────────────────────── */
-
 .volumes {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
@@ -1063,7 +968,6 @@ button, input { font: inherit; color: inherit; }
   line-height: 1;
 }
 
-/* Tome manquant : un creux dans l'étagère */
 .vol-missing {
   border: 1px dashed var(--line);
   background: transparent;
@@ -1072,7 +976,6 @@ button, input { font: inherit; color: inherit; }
 
 .vol-missing:hover { border-style: solid; border-color: var(--muted); color: var(--muted); }
 
-/* Tome possédé : la tranche est là */
 .vol-owned {
   border: 1px solid var(--brass);
   background: linear-gradient(160deg, var(--brass), var(--brass-dk));
@@ -1089,8 +992,6 @@ button, input { font: inherit; color: inherit; }
   background: rgba(26, 21, 32, 0.45);
 }
 
-/* ── Succès ───────────────────────────────── */
-
 .succes-head {
   display: flex;
   align-items: center;
@@ -1104,8 +1005,6 @@ button, input { font: inherit; color: inherit; }
   flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
-  /* Fond derrière la découpe : les images sont détourées et laisseraient
-     apparaître la page à travers les bords du personnage. */
   background: var(--raised);
   border: 2px solid var(--brass);
   box-shadow: 0 18px 36px rgba(217, 169, 76, 0.16);
@@ -1148,8 +1047,6 @@ button, input { font: inherit; color: inherit; }
   border-radius: var(--radius);
   padding: 20px 20px 18px;
   background: var(--surface);
-  /* Un succès non obtenu reste lisible mais en retrait : il indique un cap
-     à viser, il ne doit pas concurrencer ceux qui sont acquis. */
   opacity: 0.62;
 }
 
@@ -1193,15 +1090,11 @@ button, input { font: inherit; color: inherit; }
 
 .succes.is-done .succes-jauge { color: var(--brass); }
 
-/* ── Zone sensible ────────────────────────── */
-
 .danger {
   margin-top: 72px;
   padding-top: 26px;
   border-top: 1px solid var(--line);
 }
-
-/* ── Fenêtre de confirmation ──────────────── */
 
 .modal {
   position: fixed;
@@ -1238,8 +1131,6 @@ button, input { font: inherit; color: inherit; }
   gap: 20px;
 }
 
-/* ── Divers ───────────────────────────────── */
-
 .empty-state, .loading {
   margin-top: 52px;
   color: var(--muted);
@@ -1257,7 +1148,6 @@ button, input { font: inherit; color: inherit; }
   object-fit: cover;
   background: var(--raised);
   border: 2px solid var(--line);
-  /* Volontairement en retrait : le message doit primer sur le décor. */
   opacity: 0.75;
 }
 
@@ -1277,8 +1167,6 @@ button, input { font: inherit; color: inherit; }
 }
 
 @media (max-width: 860px) {
-  /* En dessous de cette largeur, la colonne latérale écraserait le formulaire.
-     L'illustration passe au-dessus, en plus petit. */
   .auth-layout { flex-direction: column; gap: 24px; }
   .auth-hero { width: 200px; }
   .auth-hero-text { font-size: 1.9rem; }
@@ -1290,39 +1178,42 @@ button, input { font: inherit; color: inherit; }
   .auth-hero { width: 160px; }
   .auth-hero-note { display: none; }
   .empty-art { width: 132px; height: 132px; }
-  /* L'avatar était masqué ici, alors que c'est l'endroit où il a le plus de
-     sens : il accompagne la progression. Il reste au-dessus du titre, comme au
-     palier précédent — côte à côte, les deux seraient à l'étroit. */
   .succes-art { width: 150px; height: 150px; }
   .succes-cartes { grid-template-columns: 1fr; }
   
+  .manual summary {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .manual-icone {
+    width: 18px;
+    height: 18px;
+    padding: 6px;
+  }
+  .manual-titre {
+    font-size: 0.95rem;
+  }
+  
   .zone-image { 
-    min-height: 140px; 
-    padding: 26px 16px; 
+    min-height: 114px; 
+    padding: 16px; 
   }
   .zone-image svg { 
-    width: 36px; 
-    height: 36px; 
-    margin-bottom: 4px;
+    width: 26px; 
+    height: 26px; 
+    margin-bottom: 0;
   }
   .zone-image-titre { 
-    font-size: 1.05rem; 
+    font-size: 0.94rem; 
   }
   
   .manual-apercu { width: 124px; }
-  /* En haut, l'identité seule ; la navigation descend en bas d'écran, à portée
-     de pouce, comme dans les applications mobiles.
-
-     La barre d'état est translucide en mode application : sans cette réserve,
-     le titre se glisse sous l'heure et l'encoche. Le fond de la barre remonte
-     jusqu'au bord de l'écran, si bien que l'heure se détache sur la même
-     couleur. Le contenu qui défile passe dessous, ce qui est voulu. */
+  
   .topbar {
     gap: 10px;
     padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px;
   }
   .tabs { display: none; }
-  /* Plus lisible au pouce, et l'avatar cesse d'être un détail décoratif. */
   .avatar-pastille { width: 40px; height: 40px; }
   .brand-mark { width: 36px; height: 36px; }
   .topbar-right {
@@ -1333,10 +1224,6 @@ button, input { font: inherit; color: inherit; }
     font-size: 0.78rem;
   }
 
-  /* Barre flottante, détachée des bords. Elle remonte au-dessus de la zone du
-     geste d'accueil des iPhone, à laquelle s'ajoutent 12 px : coller la barre
-     au ras de cette zone rend les appuis imprécis, le geste système partant
-     depuis le bas de l'écran. */
   .barre-basse {
     display: flex;
     position: fixed;
@@ -1350,27 +1237,20 @@ button, input { font: inherit; color: inherit; }
     background: rgba(32, 28, 43, 0.93);
     border: 1px solid var(--line);
     box-shadow: 0 12px 32px rgba(8, 6, 12, 0.55);
-    /* Le contenu qui défile dessous reste deviné plutôt que masqué. */
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
   }
 
-  /* Le fond de l'onglet actif n'est plus porté par le bouton mais par un
-     curseur unique qui glisse d'une position à l'autre. Un fond par bouton
-     ne pourrait pas s'animer d'un élément vers un autre. */
   .barre-curseur {
     position: absolute;
     top: 5px;
     bottom: 5px;
     left: 5px;
-    /* Un tiers de la largeur utile : 10 px de rembourrage, deux fois 4 px de
-       gouttière entre les trois boutons. */
     width: calc((100% - 10px - 8px) / 3);
     border-radius: 14px;
     background: rgba(217, 169, 76, 0.14);
     border: 1px solid rgba(217, 169, 76, 0.30);
     pointer-events: none;
-    /* Le décalage vaut la largeur du curseur plus une gouttière. */
     transform: translateX(calc(var(--onglet, 0) * (100% + 4px)));
     transition: transform 0.34s cubic-bezier(0.34, 1.24, 0.5, 1);
   }
