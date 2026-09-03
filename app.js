@@ -878,15 +878,18 @@ async function lancerRecherche(terme) {
     const series = await chercherSeries(terme);
     if (jeton !== jetonRecherche) return;      // une frappe plus récente a pris le relais
 
-if (!series.length) {
+    if (!series.length) {
+      /* C'est exactement le moment où l'ajout manuel est utile : on le propose
+         ici plutôt que d'attendre que la personne repère le bloc plus bas. */
       box.innerHTML = `
-        <div class="result result-vide">
-          <span>Aucune série trouvée pour « ${escapeHtml(terme)} ».</span>
-          <button type="button" onclick="document.getElementById('manual-section').open = true; document.getElementById('manual-section').scrollIntoView({behavior: 'smooth', block: 'center'})">
-            Créer manuellement
+        <p class="result result-vide">
+          Aucune série trouvée pour « ${escapeHtml(terme)} ».
+          <button type="button" class="btn-link" id="result-manuel">
+            L'ajouter à la main
           </button>
-        </div>`;
-    }else {
+        </p>`;
+      $("result-manuel").addEventListener("click", () => ouvrirAjoutManuel(terme));
+    } else {
       box.innerHTML = "";
       series.forEach((serie) => box.appendChild(resultRow(serie)));
     }
@@ -1005,6 +1008,17 @@ async function loadEditions() {
 }
 
 /* ══════════════════ Ajout manuel ══════════════════ */
+
+/* Déplie le formulaire manuel, en y reportant le titre cherché. */
+function ouvrirAjoutManuel(titre = "") {
+  const bloc = document.querySelector(".manual");
+  bloc.open = true;
+  if (titre) $("manual-title").value = titre;
+
+  bloc.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Le focus part sur le nombre de tomes : le titre est déjà rempli.
+  setTimeout(() => $(titre ? "manual-volumes" : "manual-title").focus(), 400);
+}
 
 /* Couverture choisie depuis l'appareil.
 

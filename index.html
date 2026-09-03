@@ -166,24 +166,18 @@
 
         <div id="search-results" class="search-results" hidden></div>
 
-        <h2 class="section-title">Éditions françaises</h2>
-        <p class="section-note">Coffrets et rééditions dont le découpage diffère de l'édition d'origine.</p>
-        <div id="editions" class="poster-grid"></div>
-
-        <details class="manual" id="manual-section">
+        <details class="manual">
           <summary>
-            <svg class="manual-icone" viewBox="0 0 24 24">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+            <svg class="manual-icone" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="12" height="16" rx="1.5"/>
+              <path d="M19 9 v10"/><path d="M14.5 14 H23.5" transform="translate(-4.5 0)"/>
             </svg>
-            <div class="manual-texte">
-              <span class="manual-titre">Ajouter un manga manuellement</span>
-              <span class="manual-note">L'édition que tu cherches n'est pas dans la liste ?</span>
-            </div>
-            <span class="manual-chevron">
-              <svg viewBox="0 0 24 24">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
+            <span class="manual-texte">
+              <span class="manual-titre">Ta série n'apparaît pas ?</span>
+              <span class="manual-note">Ajoute-la à la main : titre, nombre de tomes, couverture.</span>
+            </span>
+            <span class="manual-chevron" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 10 L12 14 L16 10"/></svg>
             </span>
           </summary>
           <form id="manual-form" class="manual-form" novalidate>
@@ -231,6 +225,11 @@
             <button type="submit" class="btn-primary">Ajouter à ma collection</button>
           </form>
         </details>
+
+        <h2 class="section-title">Éditions françaises</h2>
+        <p class="section-note">Coffrets et rééditions dont le découpage diffère de l'édition d'origine.</p>
+        <div id="editions" class="poster-grid"></div>
+
 
         <h2 class="section-title">Les séries les plus suivies</h2>
         <p class="section-note">Clique sur une couverture pour l'ajouter directement.</p>
