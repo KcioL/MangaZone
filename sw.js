@@ -6,7 +6,7 @@
 
    Changer VERSION suffit à forcer le renouvellement de tous les fichiers. */
 
-const VERSION = "mangazone-v2";
+const VERSION = "mangazone-v3";
 
 const COQUE = [
   "./",
@@ -102,7 +102,33 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Pour le reste : le cache d'abord, c'est ce qui rend le lancement instantané.
+  /* Le code du site — feuille de style et scripts — passe par le réseau
+     d'abord, le cache ne servant qu'en secours.
+
+     Le cache d'abord posait un vrai problème : la page est servie en réseau
+     d'abord, si bien qu'une mise en ligne donnait un HTML neuf accompagné d'un
+     CSS périmé, et l'affichage cassait jusqu'au changement de version. Deux
+     ressources qui doivent évoluer ensemble ne peuvent pas suivre deux
+     stratégies différentes. */
+  const estDuCode = /\.(css|js|json)$/.test(url.pathname);
+
+  if (estDuCode) {
+    e.respondWith(
+      fetch(req)
+        .then((rep) => {
+          if (rep.ok) {
+            const copie = rep.clone();
+            caches.open(VERSION).then((c) => c.put(req, copie));
+          }
+          return rep;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  /* Les images et polices, elles, ne changent pratiquement jamais : le cache
+     d'abord garde tout son intérêt et rend le lancement instantané. */
   e.respondWith(
     caches.match(req).then((cache) => cache || fetch(req).then((rep) => {
       if (rep.ok) {
