@@ -534,6 +534,14 @@ button, input { font: inherit; color: inherit; }
 
 .result-year { font-size: 0.82rem; color: var(--muted); }
 
+/* Recherche infructueuse : le message et l'échappatoire sur la même ligne. */
+.result-vide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
 .result button {
   background: none;
   border: 1px solid var(--brass);
@@ -564,21 +572,99 @@ button, input { font: inherit; color: inherit; }
 
 /* ── Ajout manuel ─────────────────────────── */
 
+/* Ce bloc était une simple ligne de texte replié : personne ne le remarquait.
+   Il se présente maintenant comme une véritable proposition, avec un signe
+   d'ajout, un titre et une explication. */
 .manual {
   margin-top: 36px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border: 1.5px solid rgba(217, 169, 76, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(217, 169, 76, 0.10), var(--surface) 72%);
+  overflow: hidden;
 }
 
 .manual summary {
-  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
   cursor: pointer;
-  color: var(--brass);
-  font-size: 0.92rem;
+  transition: background 0.15s;
+  /* Le triangle par défaut est remplacé par notre propre chevron. */
+  list-style: none;
 }
 
-.manual summary::marker { color: var(--muted); }
+.manual summary::-webkit-details-marker { display: none; }
+.manual summary:hover { background: rgba(217, 169, 76, 0.08); }
+
+/* Icône du bloc, dans une pastille laiton pour accrocher l'œil. Sans
+   `fill: none`, un SVG se remplit en noir et devient une tache illisible :
+   c'était le cas ici, ce qui rendait tout le bloc terne. */
+.manual-icone {
+  flex-shrink: 0;
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 8px;
+  border-radius: 50%;
+  background: var(--brass);
+  color: #1A1520;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Chevron d'ouverture, qui pivote quand le bloc se déplie. */
+.manual-chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--brass);
+  display: grid;
+  place-items: center;
+}
+
+.manual-chevron svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s;
+}
+
+.manual[open] .manual-chevron svg { transform: rotate(180deg); }
+
+.manual-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.manual-titre {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 1.04rem;
+}
+
+.manual-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+/* Chevron dessiné en CSS : deux bords d'un carré tourné à 45°. */
+.manual-fleche {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--brass);
+  border-bottom: 2px solid var(--brass);
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.manual[open] .manual-fleche { transform: rotate(-135deg); }
 .manual[open] summary { border-bottom: 1px solid var(--line); }
 
 .manual-form {
