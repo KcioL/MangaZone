@@ -1070,13 +1070,19 @@ function renderCollection() {
 
   const estComplete = (s) => s.totalVolumes > 0 && s.owned.length === s.totalVolumes;
 
-  /* Les séries complètes remontent en tête. À l'intérieur de chaque groupe on
-     conserve l'ordre d'ajout : `sort` est stable, donc une simple comparaison
-     sur le seul critère « complète » suffit, sans départage supplémentaire.
-     La copie évite de réordonner le cache, qui doit rester tel que Firestore
-     l'a renvoyé pour les succès et les recherches. */
-  const ordonnees = [...collectionCache].sort(
-    (a, b) => Number(estComplete(b)) - Number(estComplete(a)));
+  /* Les séries complètes d'abord, puis l'ordre alphabétique à l'intérieur de
+     chaque groupe.
+
+     `localeCompare` en français traite correctement les accents et les
+     caractères non latins, là où une comparaison brute placerait « Ère » après
+     « Zone ». L'option `base` ignore casse et accents, et `numeric` range
+     « Baki 2 » avant « Baki 10 » au lieu de l'inverse.
+
+     La copie évite de réordonner le cache lui-même, qui doit rester tel que
+     Firestore l'a renvoyé pour les succès et les recherches. */
+  const ordonnees = [...collectionCache].sort((a, b) =>
+    Number(estComplete(b)) - Number(estComplete(a))
+    || a.title.localeCompare(b.title, "fr", { sensitivity: "base", numeric: true }));
 
   ordonnees.forEach((series) => {
     owned += series.owned.length;
