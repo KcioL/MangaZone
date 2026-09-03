@@ -170,8 +170,22 @@
         <p class="section-note">Coffrets et rééditions dont le découpage diffère de l'édition d'origine.</p>
         <div id="editions" class="poster-grid"></div>
 
-        <details class="manual">
-          <summary>Ajouter une édition qui n'est dans aucune liste</summary>
+        <details class="manual" id="manual-section">
+          <summary>
+            <svg class="manual-icone" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <div class="manual-texte">
+              <span class="manual-titre">Ajouter un manga manuellement</span>
+              <span class="manual-note">L'édition que tu cherches n'est pas dans la liste ?</span>
+            </div>
+            <span class="manual-chevron">
+              <svg viewBox="0 0 24 24">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+          </summary>
           <form id="manual-form" class="manual-form" novalidate>
             <div class="field">
               <label for="manual-title">Titre de l'édition</label>

@@ -878,9 +878,15 @@ async function lancerRecherche(terme) {
     const series = await chercherSeries(terme);
     if (jeton !== jetonRecherche) return;      // une frappe plus récente a pris le relais
 
-    if (!series.length) {
-      box.innerHTML = `<p class="result">Aucune série trouvée pour « ${escapeHtml(terme)} ».</p>`;
-    } else {
+if (!series.length) {
+      box.innerHTML = `
+        <div class="result result-vide">
+          <span>Aucune série trouvée pour « ${escapeHtml(terme)} ».</span>
+          <button type="button" onclick="document.getElementById('manual-section').open = true; document.getElementById('manual-section').scrollIntoView({behavior: 'smooth', block: 'center'})">
+            Créer manuellement
+          </button>
+        </div>`;
+    }else {
       box.innerHTML = "";
       series.forEach((serie) => box.appendChild(resultRow(serie)));
     }
