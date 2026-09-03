@@ -588,6 +588,50 @@ button, input { font: inherit; color: inherit; }
   max-width: 420px;
 }
 
+.manual-image {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.manual-apercu {
+  width: 78px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--raised);
+}
+
+.manual-image-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* Le champ de fichier natif est masqué : son apparence n'est pas modifiable
+   et jurerait avec le reste. Le label sert de bouton et déclenche le même
+   comportement, y compris au clavier. */
+.faux-bouton {
+  display: inline-block;
+  border: 1px solid var(--brass);
+  color: var(--brass);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.faux-bouton:hover { background: var(--brass); color: #1A1520; }
+
+#manual-fichier:focus-visible + .faux-bouton {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
 /* ── Grille d'affiches ────────────────────── */
 
 .poster-grid {

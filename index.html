@@ -182,10 +182,30 @@
               <input type="number" id="manual-volumes" min="1" max="500" required>
             </div>
             <div class="field">
-              <label for="manual-cover">Lien vers une image de couverture</label>
-              <input type="url" id="manual-cover" placeholder="https://…">
-              <p class="field-hint">Facultatif. Clic droit sur une image du web, puis « Copier le lien de l'image ».</p>
+              <label for="manual-fichier">Couverture</label>
+              <div class="manual-image">
+                <img id="manual-apercu" class="manual-apercu" alt="" hidden>
+                <div class="manual-image-actions">
+                  <input type="file" id="manual-fichier" accept="image/*" class="visually-hidden">
+                  <label for="manual-fichier" class="faux-bouton">Choisir une image…</label>
+                  <button type="button" id="manual-retirer" class="btn-link" hidden>Retirer</button>
+                </div>
+              </div>
+              <p class="field-hint">
+                Recommandé : une photo ou une capture depuis ton appareil. L'image est
+                réduite puis enregistrée avec la série, donc elle s'affiche toujours.
+              </p>
             </div>
+
+            <div class="field">
+              <label for="manual-cover">Ou un lien vers une image</label>
+              <input type="url" id="manual-cover" placeholder="https://…">
+              <p class="field-hint">
+                Beaucoup de sites, dont la Fnac et Nautiljon, refusent que leurs images
+                soient affichées ailleurs : le lien fonctionne chez eux mais pas ici.
+              </p>
+            </div>
+
             <button type="submit" class="btn-primary">Ajouter à ma collection</button>
           </form>
         </details>

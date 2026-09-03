@@ -1000,12 +1000,79 @@ async function loadEditions() {
 
 /* ══════════════════ Ajout manuel ══════════════════ */
 
+/* Couverture choisie depuis l'appareil.
+
+   Beaucoup de sites marchands refusent que leurs images soient affichées
+   ailleurs : le lien s'ouvre bien dans un onglet mais renvoie une erreur
+   depuis un autre domaine. La seule solution fiable est de détenir l'image.
+
+   Elle est donc réduite et recompressée dans le navigateur, puis enregistrée
+   avec la série. Un document Firestore est plafonné à un peu moins d'un
+   mégaoctet : d'où la réduction à 360 pixels de large, largement suffisante
+   pour l'affichage, et la boucle qui abaisse la qualité si besoin. */
+let couvertureLocale = null;
+
+const LARGEUR_COUV = 360;
+const POIDS_MAX    = 180 * 1024;   // marge confortable sous la limite du document
+
+function reduireImage(fichier) {
+  return new Promise((resolve, reject) => {
+    const lecteur = new FileReader();
+    lecteur.onerror = () => reject(new Error("lecture impossible"));
+    lecteur.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("ce fichier n'est pas une image"));
+      img.onload = () => {
+        const ratio = Math.min(1, LARGEUR_COUV / img.width);
+        const c = document.createElement("canvas");
+        c.width  = Math.round(img.width  * ratio);
+        c.height = Math.round(img.height * ratio);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+
+        // On descend la qualité par paliers jusqu'à tenir dans le poids visé.
+        let q = 0.82, sortie = c.toDataURL("image/jpeg", q);
+        while (sortie.length > POIDS_MAX && q > 0.4) {
+          q -= 0.12;
+          sortie = c.toDataURL("image/jpeg", q);
+        }
+        resolve(sortie);
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  });
+}
+
+$("manual-fichier").addEventListener("change", async (e) => {
+  const fichier = e.target.files?.[0];
+  if (!fichier) return;
+
+  try {
+    couvertureLocale = await reduireImage(fichier);
+    $("manual-apercu").src = couvertureLocale;
+    $("manual-apercu").hidden = false;
+    $("manual-retirer").hidden = false;
+    $("manual-cover").value = "";            // le fichier prime sur le lien
+    toast(`Image prête (${Math.round(couvertureLocale.length / 1024)} Ko).`);
+  } catch (err) {
+    couvertureLocale = null;
+    toast(`Image refusée : ${err.message}.`);
+  }
+});
+
+$("manual-retirer").addEventListener("click", () => {
+  couvertureLocale = null;
+  $("manual-fichier").value = "";
+  $("manual-apercu").hidden = true;
+  $("manual-retirer").hidden = true;
+});
+
 $("manual-form").addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const title = $("manual-title").value.trim();
   const total = Number($("manual-volumes").value);
-  const cover = $("manual-cover").value.trim();
+  const cover = couvertureLocale || $("manual-cover").value.trim();
 
   if (!title) return toast("Donne un titre à cette édition.");
   if (!Number.isInteger(total) || total < 1 || total > 500) {
@@ -1026,6 +1093,9 @@ $("manual-form").addEventListener("submit", async (e) => {
   try {
     await addSeries({ id, title, cover, volumes: total });
     $("manual-form").reset();
+    couvertureLocale = null;
+    $("manual-apercu").hidden = true;
+    $("manual-retirer").hidden = true;
     document.querySelector(".manual").open = false;
     toast(`${title} est dans ta collection.`);
   } catch {
