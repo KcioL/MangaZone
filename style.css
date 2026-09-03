@@ -597,23 +597,20 @@ button, input { font: inherit; color: inherit; }
 .manual summary::-webkit-details-marker { display: none; }
 .manual summary:hover { background: rgba(217, 169, 76, 0.08); }
 
-/* Icône du bloc, dans une pastille laiton pour accrocher l'œil. Sans
-   `fill: none`, un SVG se remplit en noir et devient une tache illisible :
-   c'était le cas ici, ce qui rendait tout le bloc terne. */
-.manual-icone {
+/* Pastille laiton pleine : c'est elle qui accroche l'œil dans une page
+   entièrement sombre. */
+.manual-signe {
   flex-shrink: 0;
-  box-sizing: content-box;
-  width: 22px;
-  height: 22px;
-  padding: 8px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   background: var(--brass);
   color: #1A1520;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
 }
 
 /* Chevron d'ouverture, qui pivote quand le bloc se déplie. */
@@ -677,13 +674,13 @@ button, input { font: inherit; color: inherit; }
 .manual-image {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12px;
   margin-bottom: 14px;
 }
 
 .manual-apercu {
-  width: 104px;
+  width: 96px;
+  align-self: center;
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: var(--radius);
@@ -700,42 +697,56 @@ button, input { font: inherit; color: inherit; }
    bordé précédent se confondait avec le texte d'aide. */
 .zone-image {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 14px;
   width: 100%;
-  min-height: 104px;
-  padding: 18px 16px;
-  border: 1.5px dashed rgba(217, 169, 76, 0.55);
-  border-radius: 10px;
-  background: rgba(217, 169, 76, 0.06);
-  color: var(--brass);
+  padding: 14px 16px;
+  border: 1.5px solid rgba(217, 169, 76, 0.45);
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(217, 169, 76, 0.10), var(--raised) 72%);
   cursor: pointer;
-  text-align: center;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .zone-image:hover {
-  background: rgba(217, 169, 76, 0.12);
+  background: linear-gradient(160deg, rgba(217, 169, 76, 0.17), var(--raised) 72%);
   border-color: var(--brass);
 }
 
-.zone-image svg {
-  width: 26px;
-  height: 26px;
+/* Même pastille que le bloc d'ajout manuel : un seul vocabulaire visuel pour
+   toutes les actions d'ajout du site. */
+.zone-image-signe {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brass);
+  color: #1A1520;
+}
+
+.zone-image-signe svg {
+  width: 21px;
+  height: 21px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.6;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.zone-image-titre { font-weight: 600; font-size: 0.94rem; }
+.zone-image-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.zone-image-titre {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 1.04rem;
+}
 
 .zone-image-note {
-  font-size: 0.78rem;
   color: var(--muted);
+  font-size: 0.8rem;
   line-height: 1.35;
 }
 
@@ -1298,10 +1309,23 @@ button, input { font: inherit; color: inherit; }
      palier précédent — côte à côte, les deux seraient à l'étroit. */
   .succes-art { width: 150px; height: 150px; }
   .succes-cartes { grid-template-columns: 1fr; }
-  .zone-image { min-height: 124px; padding: 22px 16px; }
-  .zone-image svg { width: 30px; height: 30px; }
+  /* Les deux blocs d'ajout partagent les mêmes proportions sur téléphone :
+     pastille plus large, texte lisible, hauteur confortable au doigt. */
+  .manual summary,
+  .zone-image { padding: 16px 14px; gap: 13px; }
+
+  .manual-signe,
+  .zone-image-signe { width: 44px; height: 44px; font-size: 1.7rem; }
+
+  .zone-image-signe svg { width: 24px; height: 24px; }
+
+  .manual-titre,
   .zone-image-titre { font-size: 1rem; }
-  .manual-apercu { width: 124px; }
+
+  .manual-note,
+  .zone-image-note { font-size: 0.82rem; }
+
+  .manual-apercu { width: 112px; }
   /* En haut, l'identité seule ; la navigation descend en bas d'écran, à portée
      de pouce, comme dans les applications mobiles.
 
