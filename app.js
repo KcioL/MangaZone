@@ -484,7 +484,7 @@ const SUCCES = [
   { g: "Progression", id: "e1", nom: "Sur tous les fronts", texte: "Avoir 5 séries commencées mais inachevées",  palier: 5,   mesure: (b) => b.enCours },
   { g: "Progression", id: "f1", nom: "Fondations",          texte: "Posséder le tome 1 de 10 séries",            palier: 10,  mesure: (b) => b.premiersTomes },
   { g: "Progression", id: "m1", nom: "Moitié du chemin",    texte: "Posséder la moitié de tous les tomes suivis", palier: 50,  mesure: (b) => b.pourcentage },
-  { g: "Progression", id: "m2", nom: "Aucun trou",          texte: "Posséder 100 % des tomes, sur 3 séries au moins", palier: 1, mesure: (b) => b.sansTrou },
+  { g: "Progression", id: "m2", nom: "Aucun trou",          texte: "N'avoir aucune série incomplète, avec 3 séries au minimum", palier: 100, mesure: (b) => b.sansTrou },
 
   // ── Séries mythiques ──────────────────────────────────────
   { g: "Séries mythiques", id: "b1", nom: "Sur la Grand Line", texte: "Réunir 50 tomes de One Piece",               palier: 50,  mesure: (b) => b.tomesOnePiece },
@@ -521,7 +521,13 @@ function bilan() {
     premiersTomes: collectionCache.filter((s) => s.owned.includes("1")).length,
 
     pourcentage: total ? Math.round((tomes / total) * 100) : 0,
-    sansTrou: series >= 3 && total > 0 && tomes === total ? 1 : 0,
+    /* Exprimé en pourcentage plutôt qu'en tout ou rien : « 0 / 1 » ne disait
+       rien de la distance restante. Le plafond à 99 est délibéré — l'arrondi
+       afficherait 100 % alors qu'il manque encore un tome, et le succès se
+       débloquerait à tort. */
+    sansTrou: series < 3 || total === 0 ? 0
+            : tomes === total ? 100
+            : Math.min(99, Math.round((tomes / total) * 100)),
 
     tomesOnePiece,
     onePieceAJour: completee(ONE_PIECE),
