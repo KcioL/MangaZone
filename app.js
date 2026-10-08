@@ -703,6 +703,96 @@ function corrigerVF(serie) {
   return serie;
 }
 
+/* ══════════════════ Fiche détaillée ══════════════════
+
+   Les informations riches ne sont pas enregistrées à l'ajout : elles sont
+   demandées à l'ouverture de la fiche, puis gardées en mémoire. Les stocker
+   figerait un synopsis et un nombre de chapitres qui évoluent.
+
+   L'identifiant porte sa source en préfixe — « al- » pour AniList, « mal- »
+   pour Jikan, « vf- » pour une édition saisie à la main — ce qui indique à
+   qui s'adresser, ou qu'il n'y a personne à interroger.
+   ════════════════════════════════════════════════════ */
+
+const detailsCache = new Map();
+
+const STATUTS_PUB = {
+  FINISHED: "Terminé", RELEASING: "En cours", NOT_YET_RELEASED: "À paraître",
+  CANCELLED: "Annulé", HIATUS: "En pause"
+};
+
+async function detailsSerie(id) {
+  if (detailsCache.has(id)) return detailsCache.get(id);
+
+  let d = null;
+  if (id.startsWith("al-"))  d = await detailsAniList(id.slice(3));
+  if (id.startsWith("mal-")) d = await detailsJikan(id.slice(4));
+
+  detailsCache.set(id, d);
+  return d;
+}
+
+async function detailsAniList(num) {
+  const data = await anilist(
+    `query ($id: Int) { Media(id: $id, type: MANGA) {
+       description(asHtml: false)
+       chapters volumes status startDate { year } endDate { year }
+       genres countryOfOrigin averageScore
+       staff(perPage: 6, sort: RELEVANCE) { edges { role node { name { full } } } }
+     } }`, { id: Number(num) });
+
+  const m = data.Media;
+
+  /* Les rôles distinguent scénario et dessin. On regroupe par personne pour
+     éviter « Oda (Story), Oda (Art) » quand c'est le même auteur. */
+  const parPersonne = new Map();
+  (m.staff?.edges || []).forEach((e) => {
+    const nom = e.node?.name?.full;
+    if (!nom) return;
+    const role = /story\s*&\s*art/i.test(e.role) ? "scénario et dessin"
+               : /story|original/i.test(e.role)    ? "scénario"
+               : /art|illustrat/i.test(e.role)     ? "dessin"
+               : null;
+    if (!role) return;
+    if (!parPersonne.has(nom)) parPersonne.set(nom, new Set());
+    parPersonne.get(nom).add(role);
+  });
+
+  return {
+    resume:    (m.description || "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim(),
+    auteurs:   [...parPersonne].map(([nom, roles]) => ({ nom, roles: [...roles] })),
+    chapitres: m.chapters || null,
+    statut:    STATUTS_PUB[m.status] || null,
+    debut:     m.startDate?.year || null,
+    fin:       m.endDate?.year || null,
+    genres:    m.genres || [],
+    origine:   m.countryOfOrigin || null,
+    score:     m.averageScore || null,
+    magazine:  null
+  };
+}
+
+async function detailsJikan(num) {
+  const { data: m } = await jikan(`/manga/${num}/full`);
+
+  return {
+    resume:    (m.synopsis || "").trim(),
+    auteurs:   (m.authors || []).map((a) => ({
+                 // Jikan écrit « Oda, Eiichiro » : on remet dans l'ordre naturel.
+                 nom: a.name.split(", ").reverse().join(" "),
+                 roles: []
+               })),
+    chapitres: m.chapters || null,
+    statut:    m.status || null,
+    debut:     m.published?.prop?.from?.year || null,
+    fin:       m.published?.prop?.to?.year || null,
+    genres:    (m.genres || []).map((g) => g.name),
+    origine:   null,
+    score:     m.score ? Math.round(m.score * 10) : null,
+    magazine:  m.serializations?.[0]?.name || null
+  };
+}
+
 async function seriesPopulaires() {
   try {
     const d = await anilist(
@@ -1264,6 +1354,7 @@ function renderDetail() {
   $("detail-bar").style.width = `${pct}%`;
 
   rendreNotes(series.id);
+  afficherInfos(series);
 
   const grid = $("detail-volumes");
   grid.innerHTML = "";
@@ -1373,6 +1464,63 @@ $("detail-plage").addEventListener("click", async () => {
   await updateDoc(doc(db, "users", currentUser.uid, "series", series.id), { owned });
   toast(`${ajoutes} ${ajoutes > 1 ? "tomes ajoutés" : "tome ajouté"}.`);
 });
+
+/* ══════════════════ Informations et synopsis ══════════════════ */
+
+function ligneInfo(terme, valeur) {
+  return valeur
+    ? `<div class="info"><dt>${terme}</dt><dd>${escapeHtml(valeur)}</dd></div>`
+    : "";
+}
+
+async function afficherInfos(series) {
+  const dl = $("detail-infos");
+  const bloc = $("detail-synopsis-bloc");
+
+  // Ce qu'on sait déjà s'affiche tout de suite ; le reste arrive ensuite.
+  dl.innerHTML = ligneInfo("Tomes", `${series.totalVolumes}`);
+  bloc.hidden = true;
+
+  let d;
+  try {
+    d = await detailsSerie(series.id);
+  } catch (err) {
+    console.warn("Détails indisponibles :", err.message);
+    return;
+  }
+
+  if (openSeriesId !== series.id) return;   // la personne a changé de série
+  if (!d) return;                            // édition saisie à la main
+
+  const auteurs = d.auteurs.map((a) =>
+    a.roles.length ? `${a.nom} (${a.roles.join(" et ")})` : a.nom).join(", ");
+
+  const periode = d.debut && d.fin && d.debut !== d.fin ? `${d.debut} – ${d.fin}`
+                : d.debut ? (d.statut === "En cours" ? `depuis ${d.debut}` : String(d.debut))
+                : null;
+
+  dl.innerHTML = [
+    ligneInfo(d.auteurs.length > 1 ? "Auteurs" : "Auteur", auteurs),
+    ligneInfo("Prépublication", d.magazine),
+    ligneInfo("Statut", d.statut),
+    ligneInfo("Publication", periode),
+    ligneInfo("Chapitres", d.chapitres ? String(d.chapitres) : null),
+    ligneInfo("Tomes", `${series.totalVolumes}`),
+    ligneInfo("Note moyenne du public", d.score ? `${d.score} / 100` : null)
+  ].join("");
+
+  if (d.genres.length) {
+    dl.insertAdjacentHTML("beforeend",
+      `<div class="info"><dt>Genres</dt><dd class="genres">${
+        d.genres.map((g) => `<span class="genre">${escapeHtml(g)}</span>`).join("")
+      }</dd></div>`);
+  }
+
+  if (d.resume) {
+    $("detail-synopsis").textContent = d.resume;
+    bloc.hidden = false;
+  }
+}
 
 /* Le nombre de tomes de l'édition française diffère souvent du référencement
    japonais, et une série en cours avance : il faut pouvoir le corriger. */

@@ -286,6 +286,8 @@
 
             <div class="note-choix" id="detail-notes" role="group" aria-label="Noter cette série"></div>
 
+            <dl class="infos" id="detail-infos"></dl>
+
             <p class="detail-actions">
               <button type="button" id="detail-plage" class="btn-link">Cocher jusqu'à un tome…</button>
               <button type="button" id="detail-count-edit" class="btn-link">Corriger le nombre de tomes</button>
@@ -299,6 +301,11 @@
           <button type="button" class="filter" data-filter="owned">Possédés</button>
           <button type="button" class="filter" data-filter="missing">Manquants</button>
         </div>
+
+        <section class="synopsis" id="detail-synopsis-bloc" hidden>
+          <h3 class="synopsis-titre">Synopsis</h3>
+          <p class="synopsis-texte" id="detail-synopsis"></p>
+        </section>
 
         <div id="detail-volumes" class="volumes"></div>
         <p id="detail-nothing" class="empty-state" hidden></p>

@@ -891,6 +891,63 @@ button, input { font: inherit; color: inherit; }
 
 .detail-meta { flex: 1; min-width: 0; }
 
+/* ── Informations de la fiche ──────────────── */
+
+.infos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px 28px;
+  margin: 22px 0 20px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.info { min-width: 0; }
+
+.infos dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+
+.infos dd {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.4;
+}
+
+.genres { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.genre {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+/* ── Synopsis ──────────────────────────────── */
+
+.synopsis { margin: 0 0 34px; max-width: 76ch; }
+
+.synopsis-titre {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+
+.synopsis-texte {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.75;
+  /* Le synopsis d'AniList contient des sauts de ligne qu'il faut respecter. */
+  white-space: pre-line;
+}
+
 .detail-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1403,6 +1460,8 @@ button, input { font: inherit; color: inherit; }
   .note-mienne { grid-column: 1 / -1; }
   .note-chiffre { font-size: 1.8rem; }
   .detail-head { gap: 18px; }
+  .infos { grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+  .synopsis-titre { font-size: 1.15rem; }
   .detail-cover { width: 104px; }
   .series-title { font-size: 1.6rem; }
   .stats { gap: 24px; }
