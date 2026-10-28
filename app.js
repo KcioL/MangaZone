@@ -652,6 +652,9 @@ function showView(name) {
 
   if (name !== "series") openSeriesId = null;
   window.scrollTo(0, 0);
+
+  // Comptage des visites par onglet pour le tableau de bord (voir suivi.js)
+  window.suivi?.page(name);
 }
 
 /* ══════════════════ Sources de données ══════════════════

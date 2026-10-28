@@ -6,7 +6,7 @@
 
    Changer VERSION suffit à forcer le renouvellement de tous les fichiers. */
 
-const VERSION = "mangazone-v3";
+const VERSION = "mangazone-v4";
 
 const COQUE = [
   "./",
@@ -14,6 +14,7 @@ const COQUE = [
   "./style.css",
   "./app.js",
   "./firebase-config.js",
+  "./suivi.js",
   "./manifest.json",
   "./logo.png",
   "./Onglet-32.png",
