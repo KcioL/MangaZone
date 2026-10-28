@@ -216,6 +216,40 @@ button, input { font: inherit; color: inherit; }
 .btn-danger:hover { background: var(--rose); color: #1A1520; }
 .btn-danger:disabled { opacity: 0.45; cursor: default; background: none; color: var(--rose); }
 
+/* ── Écran d'attente ──────────────────────── */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 22px;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.splash-logo {
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  /* Respiration discrète : signale que quelque chose se passe, sans
+     l'agitation d'un indicateur de chargement. */
+  animation: respire 1.6s ease-in-out infinite;
+}
+
+.splash-texte {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+@keyframes respire {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%      { opacity: 0.62; transform: scale(0.96); }
+}
+
 /* ── Connexion ────────────────────────────── */
 
 .auth-screen {

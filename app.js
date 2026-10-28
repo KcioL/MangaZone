@@ -57,6 +57,28 @@ async function jikan(chemin, essais = 3) {
 
 const $ = (id) => document.getElementById(id);
 
+/* Repère d'affichage : mémorise qu'une session a déjà été ouverte sur cet
+   appareil, pour savoir s'il faut patienter au démarrage ou afficher
+   directement le formulaire. Ce n'est qu'une indication visuelle —
+   l'autorisation réelle vient de Firebase et des règles Firestore. */
+const CLE_DEJA_CONNECTE = "mangazone-session";
+
+/* Trois réponses possibles, et la nuance compte : « jamais connecté ici »
+   autorise à afficher le formulaire sans attendre, « impossible de savoir »
+   impose l'écran d'attente. Confondre les deux ferait clignoter la connexion
+   à chaque lancement là où le stockage est bloqué. */
+const litRepere = () => {
+  try { return localStorage.getItem(CLE_DEJA_CONNECTE) === "1"; }
+  catch { return null; }         // stockage inaccessible : on ne sait pas
+};
+
+const ecritRepere = (valeur) => {
+  try {
+    if (valeur) localStorage.setItem(CLE_DEJA_CONNECTE, "1");
+    else localStorage.removeItem(CLE_DEJA_CONNECTE);
+  } catch { /* sans conséquence : on retombe sur l'écran d'attente */ }
+};
+
 let currentUser     = null;
 let unsubscribe     = null;
 let mode            = "login";      // "login" | "signup"
@@ -95,6 +117,10 @@ let avatarChoisi = AVATAR_DEFAUT;   // sélection en cours sur l'écran d'inscri
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+
+  // La question est tranchée : plus de raison de faire attendre.
+  $("splash").hidden = true;
+  ecritRepere(!!user);
 
   if (!user) {
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
@@ -1733,4 +1759,31 @@ function escapeHtml(str) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-$("auth-screen").hidden = false;
+/* ══════════════════ Démarrage ══════════════════
+
+   Firebase relit la session enregistrée de façon asynchrone : pendant ces
+   quelques centaines de millisecondes, il ne sait pas encore si quelqu'un est
+   connecté. Afficher l'écran de connexion par défaut faisait donc clignoter
+   une page de connexion devant une personne déjà identifiée.
+
+   On affiche plutôt un écran d'attente, et on laisse onAuthStateChanged
+   trancher. Pour une personne qui n'est jamais venue, cette attente serait
+   inutile : le repère posé plus haut permet d'aller droit au formulaire. */
+
+const repere = litRepere();
+
+if (repere === false) {
+  $("splash").hidden = true;      // jamais connecté ici : formulaire direct
+  $("auth-screen").hidden = false;
+} else {
+  $("splash").hidden = false;     // session probable, ou état inconnu : on attend
+}
+
+/* Filet de sécurité : si Firebase ne répond pas — réseau coupé au lancement,
+   domaine non autorisé — l'écran d'attente ne doit pas rester indéfiniment. */
+setTimeout(() => {
+  if (!$("splash").hidden) {
+    $("splash").hidden = true;
+    if ($("app-screen").hidden) $("auth-screen").hidden = false;
+  }
+}, 8000);

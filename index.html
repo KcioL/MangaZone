@@ -32,6 +32,15 @@
     <span class="halo-piste"><span class="halo"></span></span>
   </div>
 
+  <!-- ══ Attente du rétablissement de la session ══
+       Affiché en premier, le temps que Firebase relise la session enregistrée.
+       Sans lui, l'écran de connexion apparaissait une seconde avant de céder
+       la place au compte déjà ouvert. -->
+  <div id="splash" class="splash">
+    <img src="logo.png" alt="" class="splash-logo">
+    <p class="splash-texte">Ouverture de ta collection…</p>
+  </div>
+
   <!-- ══ Écran de connexion ══ -->
   <div id="auth-screen" class="auth-screen" hidden>
     <div class="auth-layout">
