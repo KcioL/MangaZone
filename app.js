@@ -980,14 +980,19 @@ $("search-input").addEventListener("input", () => {
 
   $("search-input").classList.add("is-searching");
   minuteurRecherche = setTimeout(() => lancerRecherche(terme), 350);
+  // Tableau de bord : la recherche est comptée quand on s'arrête d'écrire (pas chaque lettre)
+  clearTimeout(minuteurRechercheSuivie);
+  minuteurRechercheSuivie = setTimeout(() => window.suivi?.recherche(terme), 2000);
 });
+let minuteurRechercheSuivie = null;
 
 // Entrée cherche immédiatement, sans attendre l'amortissement.
 $("search-form").addEventListener("submit", (e) => {
   e.preventDefault();
   clearTimeout(minuteurRecherche);
   const terme = $("search-input").value.trim();
-  if (terme) lancerRecherche(terme);
+  clearTimeout(minuteurRechercheSuivie);
+  if (terme) { lancerRecherche(terme); window.suivi?.recherche(terme); }
 });
 
 async function lancerRecherche(terme) {
@@ -1094,6 +1099,9 @@ async function addSeries(serie) {
     ouvrirApresAjout = null;
     throw err;
   }
+  // Tableau de bord : les séries les plus ajoutées aux collections
+  window.suivi?.contenu("ajout", serie.id, serie.title);
+  window.suivi?.action("ajout-collection");
 
   // Filet de sécurité si l'instantané est déjà passé entre-temps.
   if (ouvrirApresAjout === serie.id
@@ -1356,6 +1364,9 @@ function openSeries(id) {
     b.classList.toggle("is-active", b.dataset.filter === "all"));
   renderDetail();
   showView("series");
+  // Tableau de bord : les séries les plus consultées (voir suivi.js)
+  const vue = collectionCache.find((s) => s.id === id);
+  if (vue) window.suivi?.contenu("manga", vue.id, vue.title);
 }
 
 document.querySelectorAll(".filter").forEach((btn) => {
