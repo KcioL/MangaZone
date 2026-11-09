@@ -6,7 +6,7 @@
 
    Changer VERSION suffit à forcer le renouvellement de tous les fichiers. */
 
-const VERSION = "mangazone-v6";
+const VERSION = "mangazone-v7";
 
 const COQUE = [
   "./",
